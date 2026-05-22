@@ -1,0 +1,289 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  FINANCE
+  VIEWER
+}
+
+enum PeriodType {
+  MONTH
+  WEEK
+  DAY
+  YTD
+}
+
+enum MetricKind {
+  EXPENSE_SHARE
+  POSITIVE_MONEY
+  NEUTRAL
+}
+
+enum ImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum AdjustmentStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+}
+
+enum TvSlideMode {
+  ROTATE
+  FIXED
+}
+
+enum GrowthStatus {
+  BLOCKED
+  WATCH
+  PRELIMINARY
+  READY
+  ACCELERATED
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique
+  passwordHash String
+  name         String?
+  role         UserRole     @default(VIEWER)
+  active       Boolean      @default(true)
+  accesses     UserAccess[]
+  adjustments  ManualAdjustment[]
+  importBatches ImportBatch[]
+  auditLogs    AuditLog[]   @relation("ActorAuditLogs")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model UserAccess {
+  id            String       @id @default(cuid())
+  userId        String
+  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module        String
+  legalEntityId String?
+  legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: Cascade)
+  restaurantId  String?
+  restaurant    Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+
+  @@index([userId])
+  @@index([module])
+}
+
+model Period {
+  id                       String                    @id @default(cuid())
+  key                      String                    @unique
+  label                    String
+  year                     Int
+  month                    Int?
+  type                     PeriodType                @default(MONTH)
+  startDate                DateTime
+  endDate                  DateTime
+  planFactValues           PlanFactValue[]
+  manualAdjustments        ManualAdjustment[]
+  growthReadinessSnapshots GrowthReadinessSnapshot[]
+  createdAt                DateTime                  @default(now())
+}
+
+model LegalEntity {
+  id             String           @id @default(cuid())
+  name           String
+  slug           String           @unique
+  country        String           @default("RU")
+  restaurants    Restaurant[]
+  planFactValues PlanFactValue[]
+  dailyFacts     DailyFactValue[]
+  userAccesses   UserAccess[]
+  adjustments    ManualAdjustment[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+}
+
+model Restaurant {
+  id             String           @id @default(cuid())
+  name           String
+  slug           String           @unique
+  city           String?
+  country        String           @default("RU")
+  legalEntityId  String?
+  legalEntity    LegalEntity?     @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
+  planFactValues PlanFactValue[]
+  dailyFacts     DailyFactValue[]
+  userAccesses   UserAccess[]
+  adjustments    ManualAdjustment[]
+  openedAt       DateTime?
+  active         Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([legalEntityId])
+}
+
+model MetricArticle {
+  id             String             @id @default(cuid())
+  code           String             @unique
+  name           String
+  path           String?
+  kind           MetricKind         @default(NEUTRAL)
+  parentId       String?
+  parent         MetricArticle?     @relation("MetricHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       MetricArticle[]    @relation("MetricHierarchy")
+  sortOrder      Int                @default(0)
+  active         Boolean            @default(true)
+  planFactValues PlanFactValue[]
+  dailyFacts     DailyFactValue[]
+  adjustments    ManualAdjustment[]
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([parentId])
+  @@index([kind])
+}
+
+model PlanFactValue {
+  id            String       @id @default(cuid())
+  periodId      String
+  period        Period       @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  articleId     String
+  article       MetricArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  legalEntityId String?
+  legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
+  restaurantId  String?
+  restaurant    Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  plan          Decimal      @db.Decimal(18, 2)
+  fact          Decimal      @db.Decimal(18, 2)
+  planShare     Decimal?     @db.Decimal(9, 6)
+  factShare     Decimal?     @db.Decimal(9, 6)
+  sourceBatchId String?
+  sourceBatch   ImportBatch? @relation(fields: [sourceBatchId], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([periodId])
+  @@index([articleId])
+  @@index([legalEntityId])
+  @@index([restaurantId])
+}
+
+model DailyFactValue {
+  id            String       @id @default(cuid())
+  date          DateTime
+  articleId     String
+  article       MetricArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  legalEntityId String?
+  legalEntity   LegalEntity? @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
+  restaurantId  String?
+  restaurant    Restaurant?  @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  value         Decimal      @db.Decimal(18, 2)
+  createdAt     DateTime     @default(now())
+
+  @@index([date])
+  @@index([articleId])
+}
+
+model ManualAdjustment {
+  id            String           @id @default(cuid())
+  periodId      String?
+  period        Period?          @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  articleId     String
+  article       MetricArticle    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  legalEntityId String?
+  legalEntity   LegalEntity?     @relation(fields: [legalEntityId], references: [id], onDelete: SetNull)
+  restaurantId  String?
+  restaurant    Restaurant?      @relation(fields: [restaurantId], references: [id], onDelete: SetNull)
+  amount        Decimal?         @db.Decimal(18, 2)
+  shareDeltaPp  Decimal?         @db.Decimal(9, 4)
+  reason        String
+  status        AdjustmentStatus @default(DRAFT)
+  createdById   String?
+  createdBy     User?            @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model ImportBatch {
+  id             String          @id @default(cuid())
+  source         String
+  sourceFileName String?
+  status         ImportStatus    @default(PENDING)
+  meta           Json?
+  importedById   String?
+  importedBy     User?           @relation(fields: [importedById], references: [id], onDelete: SetNull)
+  planFactValues PlanFactValue[]
+  startedAt      DateTime        @default(now())
+  finishedAt     DateTime?
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([actorId])
+  @@index([entityType, entityId])
+}
+
+model OfficeTvConfig {
+  id             String      @id @default(cuid())
+  market         String      @unique
+  title          String
+  refreshSeconds Int         @default(300)
+  slideMode      TvSlideMode @default(ROTATE)
+  hiddenMetrics  String[]    @default([])
+  isActive       Boolean     @default(true)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+}
+
+model GrowthReadinessSnapshot {
+  id                   String       @id @default(cuid())
+  market               String
+  periodId             String
+  period               Period       @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  revenue              Decimal      @db.Decimal(18, 2)
+  ebitda               Decimal      @db.Decimal(18, 2)
+  ebitdaMargin         Decimal      @db.Decimal(9, 6)
+  netProfit            Decimal      @db.Decimal(18, 2)
+  foodCostShare        Decimal      @db.Decimal(9, 6)
+  opexShare            Decimal      @db.Decimal(9, 6)
+  restaurants          Int
+  status               GrowthStatus @default(WATCH)
+  excludeFromReadiness Boolean      @default(false)
+  createdAt            DateTime     @default(now())
+
+  @@unique([market, periodId])
+  @@index([market])
+}
+
+model NetworkGrowthScenario {
+  id                    String   @id @default(cuid())
+  market                String
+  name                  String
+  ebitdaThreshold       Decimal  @default(0.15) @db.Decimal(9, 6)
+  accelerationThreshold Decimal  @default(0.17) @db.Decimal(9, 6)
+  minStableMonths       Int      @default(3)
+  excludeMonthKeys      String[] @default([])
+  active                Boolean  @default(true)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([market])
+}

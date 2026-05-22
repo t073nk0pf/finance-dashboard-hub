@@ -1,0 +1,157 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "FH Finance Dashboard Hub" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e5]: FH
+        - generic [ref=e6]:
+          - generic [ref=e7]: Finance
+          - generic [ref=e8]: Dashboard Hub
+      - navigation [ref=e9]:
+        - generic [ref=e10]:
+          - generic [ref=e11]: Дашборды
+          - generic [ref=e12]:
+            - link "План-факт" [ref=e13] [cursor=pointer]:
+              - /url: /dashboards/plan-fact
+            - link "Forecast" [ref=e14] [cursor=pointer]:
+              - /url: /dashboards/forecast
+        - generic [ref=e15]:
+          - generic [ref=e16]: Армения
+          - generic [ref=e17]:
+            - link "Обзор" [ref=e18] [cursor=pointer]:
+              - /url: /armenia
+            - link "Прибыльность" [ref=e19] [cursor=pointer]:
+              - /url: /armenia/profitability
+            - link "Рост" [ref=e20] [cursor=pointer]:
+              - /url: /armenia/growth
+            - link "Рестораны" [ref=e21] [cursor=pointer]:
+              - /url: /armenia/restaurants
+            - link "Unit economics" [ref=e22] [cursor=pointer]:
+              - /url: /armenia/unit-economics
+        - generic [ref=e23]:
+          - generic [ref=e24]: Операции
+          - generic [ref=e25]:
+            - link "Office TV" [ref=e26] [cursor=pointer]:
+              - /url: /tv/armenia
+            - link "Пользователи" [ref=e27] [cursor=pointer]:
+              - /url: /admin/users
+            - link "Импорты" [ref=e28] [cursor=pointer]:
+              - /url: /admin/imports
+            - link "Метрики" [ref=e29] [cursor=pointer]:
+              - /url: /admin/metrics
+            - link "Правила forecast" [ref=e30] [cursor=pointer]:
+              - /url: /admin/forecast-rules
+    - main [ref=e31]:
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: Hybrid Finance Control
+            - 'heading "Armenia: financial control" [level=1] [ref=e36]'
+            - paragraph [ref=e37]: "Отдельный контур по Армении: выручка, EBITDA, чистая прибыль, Food Cost, Opex, количество пиццерий и статус готовности к развитию."
+          - generic [ref=e38]:
+            - generic [ref=e39]:
+              - generic [ref=e40]: Рабочий контекст
+              - generic [ref=e41]: "Период: январь-апрель 2026"
+            - generic [ref=e42]:
+              - generic [ref=e43]: "Юрлица: Armenia"
+              - generic [ref=e44]: "Сценарий: Base"
+              - button "Печать / PDF" [ref=e45] [cursor=pointer]
+        - generic [ref=e46]:
+          - generic [ref=e47]:
+            - article [ref=e48]:
+              - generic [ref=e49]: Выручка
+              - generic [ref=e50]: 58,6 млн ₽
+            - article [ref=e51]:
+              - generic [ref=e52]: EBITDA
+              - generic [ref=e53]: 10 млн ₽
+            - article [ref=e54]:
+              - generic [ref=e55]: EBITDA %
+              - generic [ref=e56]: 17,0%
+            - article [ref=e57]:
+              - generic [ref=e58]: Чистая прибыль
+              - generic [ref=e59]: 5,1 млн ₽
+            - article [ref=e60]:
+              - generic [ref=e61]: Food Cost / UC
+              - generic [ref=e62]: 29,8% / 4,1%
+            - article [ref=e63]:
+              - generic [ref=e64]: Opex %
+              - generic [ref=e65]: 83,0%
+            - article [ref=e66]:
+              - generic [ref=e67]: Пиццерии
+              - generic [ref=e68]: "9"
+            - article [ref=e69]:
+              - generic [ref=e70]: Средняя выручка
+              - generic [ref=e71]: 6,5 млн ₽
+          - generic [ref=e72]:
+            - article [ref=e73]:
+              - heading "Executive summary" [level=2] [ref=e74]
+              - paragraph [ref=e75]: Армения закрывает Апрель 2026 с EBITDA 17,0% и чистой прибылью 5,1 млн ₽. Food Cost и UC ниже плановых уровней, но зона внимания остается на ресторанах с EBITDA ниже 15%.
+              - generic [ref=e76]:
+                - generic [ref=e77]: EBITDA % по месяцам
+                - generic [ref=e78]:
+                  - generic [ref=e82]: Янв
+                  - generic [ref=e86]: Фев
+                  - generic [ref=e90]: Мар
+                  - generic [ref=e94]: Апр
+                  - generic [ref=e98]: Май
+            - generic [ref=e99]:
+              - generic [ref=e100]:
+                - generic [ref=e101]: Growth readiness
+                - generic [ref=e102]: Ускоренный сценарий
+                - generic [ref=e103]: EBITDA в зоне 17-18%, можно готовить ускоренный сценарий развития.
+                - generic [ref=e104]:
+                  - generic [ref=e105]: "Статус: accelerated_growth"
+                  - generic [ref=e106]: "Текущий EBITDA: 17,0%"
+                  - generic [ref=e107]: "Серия выше 15%: 3 мес."
+              - article [ref=e108]:
+                - heading "Risk / status" [level=2] [ref=e109]
+                - generic [ref=e110]:
+                  - generic [ref=e111]:
+                    - generic [ref=e112]: EBITDA threshold
+                    - generic [ref=e113]: 17,0%
+                  - generic [ref=e114]:
+                    - generic [ref=e115]: Food Cost к плану
+                    - generic [ref=e116]: 29,8%
+                  - generic [ref=e117]:
+                    - generic [ref=e118]: UC к плану
+                    - generic [ref=e119]: 4,1%
+          - generic [ref=e120]:
+            - article [ref=e121]:
+              - heading "Готовность к развитию" [level=2] [ref=e122]
+              - paragraph [ref=e123]: EBITDA в зоне 17-18%, можно готовить ускоренный сценарий развития.
+              - generic [ref=e124]: "Armenia accent #D97706"
+            - article [ref=e125]:
+              - heading "Драйверы прибыльности" [level=2] [ref=e126]
+              - generic [ref=e127]:
+                - generic [ref=e128]:
+                  - generic [ref=e129]:
+                    - generic [ref=e130]: Сильные рестораны Yerevan
+                    - generic [ref=e131]: +2.1 п.п.
+                  - paragraph [ref=e132]: Лидеры удерживают EBITDA выше 18% и компенсируют давление в регионах.
+                - generic [ref=e133]:
+                  - generic [ref=e134]:
+                    - generic [ref=e135]: Food Cost ниже плана
+                    - generic [ref=e136]: "-0.7 п.п."
+                  - paragraph [ref=e137]: Факт 29.8% против плана 30.5%, эффект поддерживает EBITDA.
+                - generic [ref=e138]:
+                  - generic [ref=e139]:
+                    - generic [ref=e140]: Зона внимания Gyumri
+                    - generic [ref=e141]: 12.1%
+                  - paragraph [ref=e142]: EBITDA ниже порога 15%, требуется контроль FC и локального Opex.
+          - generic [ref=e143]:
+            - heading "Порог развития" [level=2] [ref=e144]
+            - paragraph [ref=e145]: 2026-05 исключается из оценки готовности; порог запуска - 15% EBITDA.
+            - generic [ref=e146]:
+              - generic [ref=e147]:
+                - generic [ref=e148]: EBITDA < 15%
+                - generic [ref=e149]: Развитие не запускается
+              - generic [ref=e150]:
+                - generic [ref=e151]: 2 месяца >= 15%
+                - generic [ref=e152]: Предварительный сигнал
+              - generic [ref=e153]:
+                - generic [ref=e154]: 3 месяца >= 15%
+                - generic [ref=e155]: Устойчивая готовность
+              - generic [ref=e156]:
+                - generic [ref=e157]: 17-18%
+                - generic [ref=e158]: Ускоренный сценарий
+  - alert [ref=e159]

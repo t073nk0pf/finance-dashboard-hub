@@ -1,0 +1,162 @@
+{
+  "source": {
+    "type": "static-json",
+    "fileName": "armenia-dashboard-data.json",
+    "updatedAt": "2026-05-22T00:00:00.000Z"
+  },
+  "period": {
+    "label": "январь-апрель 2026",
+    "latestMonthKey": "2026-04",
+    "latestMonth": "Апрель 2026"
+  },
+  "kpis": {
+    "revenue": 58600000,
+    "ebitda": 9960000,
+    "ebitdaMargin": 0.17,
+    "netProfit": 5140000,
+    "foodCostShare": 0.298,
+    "foodCostPlanShare": 0.305,
+    "ucShare": 0.041,
+    "ucPlanShare": 0.045,
+    "opexShare": 0.83,
+    "restaurants": 9,
+    "averageRevenuePerRestaurant": 6511111
+  },
+  "monthlySeries": [
+    {
+      "month": "Янв",
+      "monthKey": "2026-01",
+      "revenue": 48200000,
+      "ebitda": 6620000,
+      "ebitdaMargin": 0.137,
+      "netProfit": 3020000,
+      "foodCostShare": 0.315,
+      "opexShare": 0.862,
+      "restaurants": 8
+    },
+    {
+      "month": "Фев",
+      "monthKey": "2026-02",
+      "revenue": 51400000,
+      "ebitda": 7920000,
+      "ebitdaMargin": 0.154,
+      "netProfit": 3880000,
+      "foodCostShare": 0.307,
+      "opexShare": 0.846,
+      "restaurants": 8
+    },
+    {
+      "month": "Мар",
+      "monthKey": "2026-03",
+      "revenue": 55900000,
+      "ebitda": 9220000,
+      "ebitdaMargin": 0.165,
+      "netProfit": 4650000,
+      "foodCostShare": 0.301,
+      "opexShare": 0.835,
+      "restaurants": 8
+    },
+    {
+      "month": "Апр",
+      "monthKey": "2026-04",
+      "revenue": 58600000,
+      "ebitda": 9960000,
+      "ebitdaMargin": 0.17,
+      "netProfit": 5140000,
+      "foodCostShare": 0.298,
+      "opexShare": 0.83,
+      "restaurants": 9
+    },
+    {
+      "month": "Май",
+      "monthKey": "2026-05",
+      "revenue": 53100000,
+      "ebitda": 6950000,
+      "ebitdaMargin": 0.131,
+      "netProfit": 2620000,
+      "foodCostShare": 0.318,
+      "opexShare": 0.869,
+      "restaurants": 9
+    }
+  ],
+  "restaurants": [
+    {
+      "name": "Yerevan Center",
+      "city": "Yerevan",
+      "revenue": 15400000,
+      "ebitdaMargin": 0.192,
+      "foodCostShare": 0.291,
+      "ucShare": 0.037,
+      "status": "leader"
+    },
+    {
+      "name": "Arabkir",
+      "city": "Yerevan",
+      "revenue": 12800000,
+      "ebitdaMargin": 0.166,
+      "foodCostShare": 0.302,
+      "ucShare": 0.039,
+      "status": "stable"
+    },
+    {
+      "name": "Komitas",
+      "city": "Yerevan",
+      "revenue": 10100000,
+      "ebitdaMargin": 0.142,
+      "foodCostShare": 0.319,
+      "ucShare": 0.047,
+      "status": "watch"
+    },
+    {
+      "name": "Gyumri",
+      "city": "Gyumri",
+      "revenue": 8600000,
+      "ebitdaMargin": 0.121,
+      "foodCostShare": 0.334,
+      "ucShare": 0.052,
+      "status": "watch"
+    },
+    {
+      "name": "Kentron Coffee",
+      "city": "Yerevan",
+      "revenue": 6700000,
+      "ebitdaMargin": 0.181,
+      "foodCostShare": 0.286,
+      "ucShare": 0.035,
+      "status": "leader"
+    }
+  ],
+  "profitabilityDrivers": [
+    {
+      "title": "Сильные рестораны Yerevan",
+      "value": "+2.1 п.п.",
+      "description": "Лидеры удерживают EBITDA выше 18% и компенсируют давление в регионах.",
+      "tone": "positive"
+    },
+    {
+      "title": "Food Cost ниже плана",
+      "value": "-0.7 п.п.",
+      "description": "Факт 29.8% против плана 30.5%, эффект поддерживает EBITDA.",
+      "tone": "positive"
+    },
+    {
+      "title": "Зона внимания Gyumri",
+      "value": "12.1%",
+      "description": "EBITDA ниже порога 15%, требуется контроль FC и локального Opex.",
+      "tone": "warning"
+    }
+  ],
+  "growthReadiness": {
+    "threshold": 0.15,
+    "acceleratedThreshold": 0.17,
+    "excludedMonthKeys": ["2026-05"]
+  },
+  "unitEconomics": {
+    "foodCostPlanShare": 0.305,
+    "foodCostFactShare": 0.298,
+    "ucPlanShare": 0.045,
+    "ucFactShare": 0.041,
+    "writeOffShare": 0.012,
+    "writeOffPlanShare": 0.014
+  }
+}

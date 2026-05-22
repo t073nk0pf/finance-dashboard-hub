@@ -1,0 +1,67 @@
+import type { ArmeniaMonthlySnapshot } from "@/types/armenia";
+
+export const armeniaSnapshots: ArmeniaMonthlySnapshot[] = [
+  {
+    month: "Янв",
+    monthKey: "2026-01",
+    revenue: 48_200_000,
+    ebitda: 6_620_000,
+    ebitdaMargin: 0.137,
+    netProfit: 3_020_000,
+    foodCostShare: 0.315,
+    opexShare: 0.862,
+    restaurants: 8,
+  },
+  {
+    month: "Фев",
+    monthKey: "2026-02",
+    revenue: 51_400_000,
+    ebitda: 7_920_000,
+    ebitdaMargin: 0.154,
+    netProfit: 3_880_000,
+    foodCostShare: 0.307,
+    opexShare: 0.846,
+    restaurants: 8,
+  },
+  {
+    month: "Мар",
+    monthKey: "2026-03",
+    revenue: 55_900_000,
+    ebitda: 9_220_000,
+    ebitdaMargin: 0.165,
+    netProfit: 4_650_000,
+    foodCostShare: 0.301,
+    opexShare: 0.835,
+    restaurants: 8,
+  },
+  {
+    month: "Апр",
+    monthKey: "2026-04",
+    revenue: 58_600_000,
+    ebitda: 9_960_000,
+    ebitdaMargin: 0.17,
+    netProfit: 5_140_000,
+    foodCostShare: 0.298,
+    opexShare: 0.83,
+    restaurants: 9,
+  },
+  {
+    month: "Май",
+    monthKey: "2026-05",
+    revenue: 53_100_000,
+    ebitda: 6_950_000,
+    ebitdaMargin: 0.131,
+    netProfit: 2_620_000,
+    foodCostShare: 0.318,
+    opexShare: 0.869,
+    restaurants: 9,
+  },
+];
+
+export const armeniaRestaurants = [
+  { name: "Yerevan Center", revenue: 15_400_000, ebitdaMargin: 0.192, foodCostShare: 0.291, growthReady: true },
+  { name: "Arabkir", revenue: 12_800_000, ebitdaMargin: 0.166, foodCostShare: 0.302, growthReady: true },
+  { name: "Komitas", revenue: 10_100_000, ebitdaMargin: 0.142, foodCostShare: 0.319, growthReady: false },
+  { name: "Gyumri", revenue: 8_600_000, ebitdaMargin: 0.121, foodCostShare: 0.334, growthReady: false },
+  { name: "Kentron Coffee", revenue: 6_700_000, ebitdaMargin: 0.181, foodCostShare: 0.286, growthReady: true },
+];

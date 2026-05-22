@@ -1,0 +1,47 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: Office TV
+          - heading "Armenia Finance Pulse" [level=1] [ref=e7]
+        - generic [ref=e8]:
+          - text: Не содержит чувствительной детализации
+          - text: "Auto-refresh: placeholder"
+      - generic [ref=e9]:
+        - article [ref=e10]:
+          - generic [ref=e11]: Выручка
+          - generic [ref=e12]: 58,6 млн ₽
+          - generic [ref=e13]: Апрель 2026
+        - article [ref=e14]:
+          - generic [ref=e15]: EBITDA
+          - generic [ref=e16]: 10 млн ₽
+          - generic [ref=e17]: 17,0%
+        - article [ref=e18]:
+          - generic [ref=e19]: Пиццерии
+          - generic [ref=e20]: "9"
+          - generic [ref=e21]: активная сеть
+        - article [ref=e22]:
+          - generic [ref=e23]: Growth
+          - generic [ref=e24]: 17,0%
+          - generic [ref=e25]: Ускоренный сценарий
+      - generic [ref=e26]:
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - generic [ref=e30]: Slide 1 / 5
+            - heading "Общий статус Армении" [level=2] [ref=e31]
+            - paragraph [ref=e32]: Выручка 58,6 млн ₽, EBITDA 17,0%, сеть 9 пиццерий.
+          - generic [ref=e33]: TV
+        - generic [ref=e34]:
+          - generic [ref=e35]: Операционный статус
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]: FAST
+              - generic [ref=e39]: Ускоренный сценарий
+            - generic [ref=e40]:
+              - generic [ref=e41]: OK
+              - generic [ref=e42]: FC 29,8% / UC 4,1%
+            - generic [ref=e43]:
+              - generic [ref=e44]: 5 мин
+              - generic [ref=e45]: Auto-refresh placeholder
+  - alert [ref=e46]

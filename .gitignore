@@ -1,0 +1,29 @@
+# dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+dist/
+
+# environment files with secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# temporary artifacts
+output/playwright/
+screenshots/
+coverage/
+
+# OS/editor files
+.DS_Store
+
+# logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
