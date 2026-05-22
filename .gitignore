@@ -9,10 +9,13 @@ dist/
 # environment files with secrets
 .env
 .env.local
+.env.production
 .env.*.local
 !.env.example
+!.env.production.example
 
 # temporary artifacts
+backups/
 output/playwright/
 screenshots/
 coverage/

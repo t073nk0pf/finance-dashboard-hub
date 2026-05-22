@@ -1,24 +1,31 @@
 # VPS Deploy Guide
 
-Deploy target: one VPS running the Next.js app, PostgreSQL, and Nginx reverse proxy.
+Use this guide for the production deployment of `finance-dashboard-hub`.
 
-## Server Requirements
+Detailed operational steps are in `docs/DEPLOYMENT_RUNBOOK.md`. Backup and restore steps are in `docs/BACKUP_RESTORE.md`.
+
+## Requirements
 
 - Ubuntu 22.04 or newer
-- 2 CPU / 2 GB RAM minimum for MVP
-- Node.js 22 LTS if running without Docker
-- Docker Engine
-- Docker Compose plugin
+- Node.js 22 LTS on the host for `npm run smoke`
+- Docker Engine and Docker Compose plugin
 - Nginx
 - Certbot for HTTPS
+- Git and SSH access for the deploy user
 
-## Environment
+## Production Environment
 
-Create `.env` on the server. Do not commit it.
+Create `.env.production` on the server:
 
-Required variables:
+```bash
+cp .env.production.example .env.production
+```
+
+Required values:
 
 ```env
+APP_BASE_URL="https://dashboard.example.com"
+PORT="3000"
 DATABASE_URL="postgresql://finance:change-me@postgres:5432/finance_dashboard_hub?schema=public"
 POSTGRES_DB="finance_dashboard_hub"
 POSTGRES_USER="finance"
@@ -28,7 +35,6 @@ ADMIN_PASSWORD="change-me"
 SESSION_SECRET="replace-with-a-long-random-secret"
 NODE_ENV="production"
 DISABLE_AUTH="false"
-NEXT_PUBLIC_APP_NAME="Finance Dashboard Hub"
 ```
 
 Generate `SESSION_SECRET`:
@@ -37,129 +43,105 @@ Generate `SESSION_SECRET`:
 openssl rand -base64 48
 ```
 
-Use a strong one-time `ADMIN_PASSWORD`, then rotate it after the first login if password management is added later.
+Never commit `.env.production`.
 
-## Docker Production Deploy
+## Docker Deploy
 
-Build and start PostgreSQL plus the app:
-
-```bash
-docker compose -f docker-compose.production.yml up -d --build
-```
-
-Check containers:
+Start PostgreSQL and the app:
 
 ```bash
-docker compose -f docker-compose.production.yml ps
-docker compose -f docker-compose.production.yml logs -f app
+docker compose --env-file .env.production -f docker-compose.production.yml up -d --build
 ```
 
 Apply Prisma schema:
 
 ```bash
-docker compose -f docker-compose.production.yml exec app npx prisma db push
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npx prisma db push
 ```
 
-For a migration-based production flow, create migrations in development and run:
+Seed only when explicitly needed:
 
 ```bash
-docker compose -f docker-compose.production.yml exec app npx prisma migrate deploy
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npm run prisma:seed
 ```
 
-Seed admin user and base records:
+Check containers:
 
 ```bash
-docker compose -f docker-compose.production.yml exec app npm run prisma:seed
+docker compose --env-file .env.production -f docker-compose.production.yml ps
 ```
 
-Run smoke checks from the host:
+## Deploy Script
+
+Manual production deploy:
 
 ```bash
-SMOKE_BASE_URL=http://localhost:3000 npm run smoke
+BASE_URL=https://dashboard.example.com bash scripts/deploy.sh
 ```
 
-## Manual Node Deploy
-
-If not using Docker for the app, install dependencies and build:
+Run seed explicitly:
 
 ```bash
-npm ci
-npm run prisma:generate
-npx prisma db push
-npm run prisma:seed
-npm run build
-NODE_ENV=production npm run start
+RUN_SEED=true BASE_URL=https://dashboard.example.com bash scripts/deploy.sh
 ```
 
-Because `next.config.ts` uses `output: "standalone"`, a standalone run is also possible after build:
+The script pulls latest code, rebuilds containers, runs `prisma db push`, skips seed by default, runs smoke tests, and prints container status.
 
-```bash
-node .next/standalone/server.js
-```
+## GitHub Actions
 
-## Nginx Reverse Proxy
+CI runs on pull requests and pushes to `main`.
 
-Example site config:
+Deploy is manual through `workflow_dispatch` and requires repository secrets:
 
-```nginx
-server {
-  listen 80;
-  server_name finance.example.com;
+- `DEPLOY_HOST`
+- `DEPLOY_USER`
+- `DEPLOY_SSH_KEY`
+- `DEPLOY_PATH`
+- `PRODUCTION_BASE_URL`
 
-  location / {
-    proxy_pass http://127.0.0.1:3000;
-    proxy_http_version 1.1;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-  }
-}
+The deploy workflow connects over SSH and runs `scripts/deploy.sh` on the server.
+
+## Nginx
+
+Use `nginx/finance-dashboard-hub.conf` as the site config. Replace:
+
+```text
+dashboard.example.com
 ```
 
 Enable and reload:
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/finance-dashboard-hub /etc/nginx/sites-enabled/
+sudo cp nginx/finance-dashboard-hub.conf /etc/nginx/sites-available/finance-dashboard-hub
+sudo ln -s /etc/nginx/sites-available/finance-dashboard-hub /etc/nginx/sites-enabled/finance-dashboard-hub
 sudo nginx -t
 sudo systemctl reload nginx
 ```
 
+The app is bound to `127.0.0.1:3000`; public traffic should enter through Nginx.
+
 ## HTTPS
 
-Issue a certificate:
-
 ```bash
-sudo certbot --nginx -d finance.example.com
-```
-
-Verify auto-renewal:
-
-```bash
+sudo certbot --nginx -d dashboard.example.com
 sudo certbot renew --dry-run
 ```
 
+## Smoke Test
+
+```bash
+BASE_URL=https://dashboard.example.com npm run smoke
+```
+
+Expected result: all routes print `200 OK`.
+
 ## Post-Deploy Checklist
 
-- `.env` exists on the server and contains production values.
-- `DISABLE_AUTH` is `false`.
-- PostgreSQL container is healthy.
-- Prisma schema has been applied with `db push` or `migrate deploy`.
-- `npm run prisma:seed` completed and admin login works.
-- `npm run build` completed during image or manual build.
+- `.env.production` exists and is not committed.
+- `DISABLE_AUTH=false`.
+- PostgreSQL is healthy.
+- Prisma schema was applied.
 - Nginx config passes `sudo nginx -t`.
 - HTTPS certificate is active.
-- Smoke routes return 200:
-  - `/`
-  - `/login`
-  - `/dashboards/plan-fact`
-  - `/armenia`
-  - `/tv/armenia`
-  - `/admin/users`
-  - `/admin/imports`
-  - `/admin/metrics`
-  - `/api/dashboards/plan-fact`
-  - `/api/dashboards/armenia`
-- Plan-fact dashboard opens after login.
-- Armenia dashboard opens after login.
-- Office TV opens and shows the dark fullscreen layout.
+- `BASE_URL=https://dashboard.example.com npm run smoke` passes.
+- `/login`, `/dashboards/plan-fact`, `/armenia`, and `/tv/armenia` open manually.

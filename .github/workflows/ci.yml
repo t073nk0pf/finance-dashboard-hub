@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://finance:finance@localhost:5432/finance_dashboard_hub?schema=public
+      SESSION_SECRET: ci-session-secret-not-for-production
+      ADMIN_EMAIL: admin@example.com
+      ADMIN_PASSWORD: admin
+      NODE_ENV: test
+      DISABLE_AUTH: "true"
+      NEXT_PUBLIC_APP_NAME: Finance Dashboard Hub
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      - name: Audit production dependencies
+        run: npm audit --omit=dev

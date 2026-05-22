@@ -3,7 +3,8 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env.production
+        required: false
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -23,12 +24,13 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file:
-      - .env
+      - path: .env.production
+        required: false
     environment:
       NODE_ENV: production
       DISABLE_AUTH: "false"
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${PORT:-3000}:3000"
     depends_on:
       postgres:
         condition: service_healthy
