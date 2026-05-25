@@ -12,7 +12,7 @@ function VarianceItem({ item }: { item: ExpenseVarianceItem }) {
   const deviation = getActualShareDeviationPp(item);
   const good = deviation <= 0;
   return (
-    <article className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 rounded-lg border border-line bg-surface2 p-4">
+    <article className="grid grid-cols-[minmax(0,1fr)_auto] gap-4 rounded-lg border border-line bg-surface2 p-4 shadow-sm transition hover:bg-white">
       <div>
         <div className="font-black text-slate-800">{item.label}</div>
         <div className="mt-1 text-xs font-semibold leading-5 text-muted">{item.path}</div>
@@ -20,14 +20,16 @@ function VarianceItem({ item }: { item: ExpenseVarianceItem }) {
           План: {formatPercent(item.planShare)} · факт: {formatPercent(item.factShare)} · руб.: {formatMoney(item.delta)}
         </div>
       </div>
-      <div className={`self-center text-lg font-black ${good ? "text-positive" : "text-negative"}`}>{formatPp(deviation)}</div>
+      <div className={`self-center rounded-md px-2.5 py-1 text-lg font-black ${good ? "bg-emerald-50 text-positive" : "bg-red-50 text-negative"}`}>
+        {formatPp(deviation)}
+      </div>
     </article>
   );
 }
 
 export function VarianceList({ title, better, worse }: VarianceListProps) {
   return (
-    <section className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+    <section className="rounded-lg border border-line bg-surface p-6 shadow-card">
       <h2 className="text-xl font-black text-navy">{title}</h2>
       <p className="mt-1 max-w-3xl text-sm leading-6 text-muted">
         Показано фактическое отклонение доли: факт минус план. Отрицательное значение для расходов означает экономию доли.

@@ -30,19 +30,19 @@ export function ExecutiveSummary({ data }: { data: DashboardData }) {
   ].filter(Boolean);
 
   return (
-    <section className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+    <section className="rounded-lg border border-line bg-surface p-6 shadow-card">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-navy">Главные выводы</h2>
           <p className="mt-1 text-sm leading-6 text-muted">Автоматическая сводка на основе план-факт данных и отклонений по долям.</p>
         </div>
-        <span className="rounded-lg bg-surface2 px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-primary">
+        <span className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black uppercase tracking-[0.08em] text-primary">
           {data.source.period}
         </span>
       </div>
       <ul className="mt-4 grid gap-3 lg:grid-cols-2">
         {bullets.map((bullet) => (
-          <li key={bullet} className="rounded-lg border border-line bg-surface2 px-4 py-3 text-sm font-bold leading-6 text-slate-800">
+          <li key={bullet} className="rounded-lg border border-line bg-surface2 px-4 py-3 text-sm font-bold leading-6 text-slate-800 shadow-sm">
             {bullet}
           </li>
         ))}

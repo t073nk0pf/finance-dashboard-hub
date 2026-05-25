@@ -42,11 +42,11 @@ export function LoginForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-8 space-y-4">
+    <form onSubmit={onSubmit} className="mt-8 space-y-5">
       <label className="block">
-        <span className="text-sm font-bold text-slate-700">Email</span>
+        <span className="text-sm font-black text-slate-700">Email</span>
         <input
-          className="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
+          className="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none ring-primary/15 transition focus:border-primary focus:ring-4"
           name="email"
           type="email"
           defaultValue="admin@example.com"
@@ -54,17 +54,23 @@ export function LoginForm() {
         />
       </label>
       <label className="block">
-        <span className="text-sm font-bold text-slate-700">Пароль</span>
+        <span className="text-sm font-black text-slate-700">Пароль</span>
         <input
-          className="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-sm outline-none ring-primary/20 focus:ring-4"
+          className="mt-2 w-full rounded-lg border border-line bg-white px-4 py-3 text-sm font-semibold text-ink shadow-sm outline-none ring-primary/15 transition focus:border-primary focus:ring-4"
           name="password"
           type="password"
           defaultValue="admin"
           required
         />
       </label>
-      {error ? <div className="rounded-lg bg-red-50 px-4 py-3 text-sm font-bold text-negative">{error}</div> : null}
-      <button className="w-full rounded-lg bg-navy px-4 py-3 text-sm font-black text-white disabled:opacity-60" disabled={loading} type="submit">
+      {error ? (
+        <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-bold leading-6 text-negative">{error}</div>
+      ) : null}
+      <button
+        className="w-full rounded-lg bg-navy px-4 py-3 text-sm font-black text-white shadow-card transition hover:bg-primaryDark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={loading}
+        type="submit"
+      >
         {loading ? "Вход..." : "Войти"}
       </button>
     </form>
