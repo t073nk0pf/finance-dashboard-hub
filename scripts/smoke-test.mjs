@@ -1,4 +1,6 @@
 const baseUrl = process.env.BASE_URL ?? process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
+const viewerEmail = process.env.VIEWER_EMAIL;
+const viewerPassword = process.env.VIEWER_PASSWORD;
 
 const expectations = [
   { route: "/login", type: "status", status: 200 },
@@ -54,6 +56,55 @@ for (const expectation of expectations) {
   } catch (error) {
     failed = true;
     console.log(`${expectation.route} 000 FAIL ${error instanceof Error ? error.message : "Request failed"}`);
+  }
+}
+
+async function login(email, password) {
+  const response = await fetch(`${origin}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ email, password }),
+    redirect: "manual",
+  });
+  const cookie = response.headers.get("set-cookie")?.split(";")[0];
+  return response.ok && cookie ? cookie : null;
+}
+
+if (viewerEmail && viewerPassword) {
+  const cookie = await login(viewerEmail, viewerPassword);
+  if (!cookie) {
+    failed = true;
+    console.log("viewer login 000 FAIL");
+  } else {
+    const viewerExpectations = [
+      { route: "/dashboards/plan-fact", status: 200 },
+      { route: "/dashboards/forecast", status: 200 },
+      { route: "/armenia", status: 200 },
+      { route: "/tv/armenia", status: 200 },
+      { route: "/admin/users", status: 403 },
+      { route: "/admin/imports", status: 403 },
+      { route: "/admin/metrics", status: 403 },
+      { route: "/admin/forecast-rules", status: 403 },
+      { route: "/api/dashboards/plan-fact", status: 200 },
+      { route: "/api/dashboards/armenia", status: 200 },
+      { route: "/api/imports", status: 403 },
+      { route: "/api/forecast", status: 403 },
+    ];
+
+    for (const expectation of viewerExpectations) {
+      try {
+        const response = await fetch(`${origin}${expectation.route}`, {
+          headers: { Cookie: cookie },
+          redirect: "manual",
+        });
+        const ok = response.status === expectation.status;
+        if (!ok) failed = true;
+        console.log(`viewer ${expectation.route} ${response.status} ${ok ? "OK" : "FAIL"}`);
+      } catch (error) {
+        failed = true;
+        console.log(`viewer ${expectation.route} 000 FAIL ${error instanceof Error ? error.message : "Request failed"}`);
+      }
+    }
   }
 }
 

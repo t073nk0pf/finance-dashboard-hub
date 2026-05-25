@@ -16,6 +16,7 @@ Use this checklist before accepting the production-ready MVP.
 ## Login
 
 - [ ] `npm run prisma:seed` completed.
+- [ ] Viewer user can be created with `npm run create:user`.
 - [ ] `/login` opens.
 - [ ] Login works with admin credentials from env.
 - [ ] Protected pages redirect to `/login` when unauthenticated.
@@ -52,7 +53,24 @@ Use this checklist before accepting the production-ready MVP.
 - [ ] `GET /api/dashboards/plan-fact` returns JSON.
 - [ ] `GET /api/dashboards/armenia` returns JSON.
 - [ ] Unauthorized API access is rejected when auth is enabled.
+- [ ] Viewer can read dashboard APIs.
+- [ ] Viewer receives 403 for admin/import/metric mutation APIs.
 - [ ] API routes return 200 during authenticated smoke checks.
+
+## Viewer Role Acceptance
+
+- [ ] Viewer can login.
+- [ ] Viewer can open `/dashboards/plan-fact`.
+- [ ] Viewer can open `/dashboards/forecast`.
+- [ ] Viewer can open `/armenia`.
+- [ ] Viewer can open `/tv/armenia`.
+- [ ] Viewer cannot open `/admin/users`.
+- [ ] Viewer cannot open `/admin/imports`.
+- [ ] Viewer cannot open `/admin/metrics`.
+- [ ] Viewer cannot open `/admin/forecast-rules`.
+- [ ] Viewer cannot add, edit, or delete users.
+- [ ] Viewer cannot add, edit, delete, import, approve, or rollback data.
+- [ ] Viewer does not see admin navigation in the sidebar.
 
 ## Build And Quality
 
@@ -63,16 +81,11 @@ Use this checklist before accepting the production-ready MVP.
 
 ## Smoke Routes
 
-- [ ] `/` returns 200.
+- [ ] `/` redirects to `/login` when unauthenticated.
 - [ ] `/login` returns 200.
-- [ ] `/dashboards/plan-fact` returns 200.
-- [ ] `/armenia` returns 200.
-- [ ] `/tv/armenia` returns 200.
-- [ ] `/admin/users` returns 200.
-- [ ] `/admin/imports` returns 200.
-- [ ] `/admin/metrics` returns 200.
-- [ ] `/api/dashboards/plan-fact` returns 200.
-- [ ] `/api/dashboards/armenia` returns 200.
+- [ ] Protected pages redirect to `/login` when unauthenticated.
+- [ ] Dashboard APIs return 401 when unauthenticated.
+- [ ] Optional viewer smoke with `VIEWER_EMAIL` and `VIEWER_PASSWORD` passes.
 
 ## Docker
 

@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sessionCookieName, verifySessionToken } from "@/lib/auth/session";
+import { canAccessAdminRoute, canAccessApiRoute, canMutateData } from "@/lib/permissions";
 
 const protectedPrefixes = ["/dashboards", "/admin", "/armenia", "/tv", "/api/dashboards", "/api/imports", "/api/forecast"];
 const defaultAuthenticatedPath = "/dashboards/plan-fact";
+const forbiddenPath = "/forbidden";
 
 function isProtectedPath(pathname: string): boolean {
   return protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
@@ -30,6 +32,10 @@ function redirectToDefault(request: NextRequest): NextResponse {
   return NextResponse.redirect(new URL(defaultAuthenticatedPath, request.url));
 }
 
+function rewriteToForbidden(request: NextRequest): NextResponse {
+  return NextResponse.rewrite(new URL(forbiddenPath, request.url), { status: 403 });
+}
+
 export async function middleware(request: NextRequest) {
   if (process.env.DISABLE_AUTH === "true") return NextResponse.next();
 
@@ -44,19 +50,37 @@ export async function middleware(request: NextRequest) {
     return session ? redirectToDefault(request) : NextResponse.next();
   }
 
+  if (pathname === forbiddenPath) {
+    return session ? NextResponse.next() : redirectToLogin(request, false);
+  }
+
   if (pathname === "/") {
     return session ? redirectToDefault(request) : redirectToLogin(request, false);
   }
 
   if (!isProtectedPath(pathname)) return NextResponse.next();
 
-  if (session) return NextResponse.next();
-
-  if (pathname.startsWith("/api/")) {
+  if (!session && pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return redirectToLogin(request);
+  if (!session) return redirectToLogin(request);
+
+  if (pathname.startsWith("/api/")) {
+    return canAccessApiRoute(session.role, pathname, request.method)
+      ? NextResponse.next()
+      : NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  if (pathname.startsWith("/admin") && !canAccessAdminRoute(session.role, pathname)) {
+    return rewriteToForbidden(request);
+  }
+
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(request.method) && !canMutateData(session.role)) {
+    return rewriteToForbidden(request);
+  }
+
+  return NextResponse.next();
 }
 
 export const config = {

@@ -88,6 +88,20 @@ ADMIN_EMAIL / ADMIN_PASSWORD
 admin@example.com / admin
 ```
 
+Создать или обновить viewer-пользователя локально:
+
+```bash
+npm run create:user -- --email viewer@example.com --password StrongPassword123 --name "Viewer User" --role viewer
+```
+
+Поддерживаемые роли:
+
+```text
+admin, finance, director, manager, viewer
+```
+
+`viewer` может смотреть дашборды и TV, но не может открывать admin-разделы, управлять пользователями, импортами, метриками или изменять данные.
+
 ## Run Dev
 
 ```bash
@@ -151,6 +165,8 @@ DISABLE_AUTH=true npm run dev
 
 Do not use `DISABLE_AUTH=true` in production.
 
+Admin routes are role-gated. `viewer`, `manager`, and `director` are read-only roles for dashboard/report pages. `admin` can manage users. `finance` can access operational admin areas for imports and metrics but cannot manage users.
+
 ## Useful Commands
 
 ```bash
@@ -162,6 +178,7 @@ npm audit --omit=dev
 npm run smoke
 npm run prisma:generate
 npm run prisma:seed
+npm run create:user
 ```
 
 `npm run smoke` expects the app to be running. Override the target URL with:
@@ -173,3 +190,9 @@ SMOKE_BASE_URL=http://localhost:3000 npm run smoke
 ## Production Notes
 
 See `README_DEPLOY.md` for VPS deployment, Docker Compose production setup, Nginx reverse proxy, HTTPS, and post-deploy checks.
+
+Create a production viewer user from the app container:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml exec app npm run create:user -- --email viewer@example.com --password StrongViewerPassword123 --name "Viewer User" --role viewer
+```

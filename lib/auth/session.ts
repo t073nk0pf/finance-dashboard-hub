@@ -1,3 +1,7 @@
+import type { NextRequest } from "next/server";
+import { appRoles, normalizeRole } from "@/lib/permissions";
+import type { AppRole } from "@/lib/permissions";
+
 export type SessionPayload = {
   sub: string;
   email: string;
@@ -71,4 +75,32 @@ export async function verifySessionToken(token: string | undefined, secret: stri
   } catch {
     return null;
   }
+}
+
+export class AuthRequiredError extends Error {
+  constructor(message = "Authentication required") {
+    super(message);
+    this.name = "AuthRequiredError";
+  }
+}
+
+export class RoleRequiredError extends Error {
+  constructor(message = "Insufficient permissions") {
+    super(message);
+    this.name = "RoleRequiredError";
+  }
+}
+
+export async function requireAuth(request: NextRequest): Promise<SessionPayload> {
+  const session = await verifySessionToken(request.cookies.get(sessionCookieName)?.value, process.env.SESSION_SECRET ?? "");
+  if (!session) throw new AuthRequiredError();
+  return session;
+}
+
+export async function requireRole(request: NextRequest, roles: AppRole[]): Promise<SessionPayload> {
+  const session = await requireAuth(request);
+  const role = normalizeRole(session.role);
+  const allowedRoles = roles.filter((value) => appRoles.includes(value));
+  if (!allowedRoles.includes(role)) throw new RoleRequiredError();
+  return session;
 }
