@@ -3,6 +3,13 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useState } from "react";
 
+const defaultRedirectPath = "/dashboards/plan-fact";
+
+function safeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return defaultRedirectPath;
+  return value;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
@@ -30,7 +37,7 @@ export function LoginForm() {
       return;
     }
 
-    router.replace(params.get("next") || "/dashboards/plan-fact");
+    router.replace(safeRedirectPath(params.get("next") ?? params.get("callbackUrl") ?? params.get("redirect")));
     router.refresh();
   }
 

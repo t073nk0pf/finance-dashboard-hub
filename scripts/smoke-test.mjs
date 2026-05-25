@@ -1,60 +1,59 @@
 const baseUrl = process.env.BASE_URL ?? process.env.SMOKE_BASE_URL ?? "http://localhost:3000";
-const adminEmail = process.env.ADMIN_EMAIL ?? "admin@example.com";
-const adminPassword = process.env.ADMIN_PASSWORD ?? "admin";
 
-const routes = [
-  "/",
-  "/login",
-  "/dashboards/plan-fact",
-  "/armenia",
-  "/tv/armenia",
-  "/admin/users",
-  "/admin/imports",
-  "/admin/metrics",
-  "/api/dashboards/plan-fact",
-  "/api/dashboards/armenia",
+const expectations = [
+  { route: "/login", type: "status", status: 200 },
+  { route: "/", type: "login-redirect" },
+  { route: "/dashboards/plan-fact", type: "login-redirect" },
+  { route: "/armenia", type: "login-redirect" },
+  { route: "/tv/armenia", type: "login-redirect" },
+  { route: "/admin/users", type: "login-redirect" },
+  { route: "/admin/imports", type: "login-redirect" },
+  { route: "/admin/metrics", type: "login-redirect" },
+  { route: "/api/dashboards/plan-fact", type: "status", status: 401 },
+  { route: "/api/dashboards/armenia", type: "status", status: 401 },
 ];
 
 function normalizeBaseUrl(value) {
   return value.endsWith("/") ? value.slice(0, -1) : value;
 }
 
-async function getSessionCookie(origin) {
+function locationPath(value) {
+  if (!value) return "";
   try {
-    const response = await fetch(`${origin}/api/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({ email: adminEmail, password: adminPassword }),
-      redirect: "manual",
-    });
-
-    const setCookie = response.headers.get("set-cookie");
-    if (!response.ok || !setCookie) return "";
-    return setCookie.split(";")[0];
+    return new URL(value, origin).pathname;
   } catch {
     return "";
   }
 }
 
+function evaluate(expectation, response) {
+  if (expectation.type === "status") {
+    return response.status === expectation.status;
+  }
+
+  if (expectation.type === "login-redirect") {
+    return [307, 308].includes(response.status) && locationPath(response.headers.get("location")) === "/login";
+  }
+
+  return false;
+}
+
 const origin = normalizeBaseUrl(baseUrl);
-const sessionCookie = await getSessionCookie(origin);
 let failed = false;
 
-for (const route of routes) {
+for (const expectation of expectations) {
   try {
-    const response = await fetch(`${origin}${route}`, {
-      headers: sessionCookie ? { Cookie: sessionCookie } : undefined,
+    const response = await fetch(`${origin}${expectation.route}`, {
       redirect: "manual",
     });
-    const ok = response.status === 200;
+    const ok = evaluate(expectation, response);
     if (!ok) failed = true;
-    console.log(`${route} ${response.status} ${ok ? "OK" : "FAIL"}`);
+    const location = response.headers.get("location");
+    const suffix = location ? ` -> ${location}` : "";
+    console.log(`${expectation.route} ${response.status}${suffix} ${ok ? "OK" : "FAIL"}`);
   } catch (error) {
     failed = true;
-    console.log(`${route} 000 FAIL ${error instanceof Error ? error.message : "Request failed"}`);
+    console.log(`${expectation.route} 000 FAIL ${error instanceof Error ? error.message : "Request failed"}`);
   }
 }
 
