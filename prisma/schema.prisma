@@ -33,6 +33,7 @@ enum ImportStatus {
   RUNNING
   COMPLETED
   FAILED
+  COMPLETED_WITH_ERRORS
 }
 
 enum AdjustmentStatus {
@@ -52,6 +53,41 @@ enum GrowthStatus {
   PRELIMINARY
   READY
   ACCELERATED
+}
+
+enum MetricDirection {
+  HIGHER_IS_BETTER
+  LOWER_IS_BETTER
+  NEUTRAL
+}
+
+enum MetricFormat {
+  MONEY
+  PERCENT
+  NUMBER
+  PP
+  RATIO
+}
+
+enum AnalyticsValueType {
+  FACT
+  PLAN
+  FORECAST
+  BUSINESS_PLAN
+}
+
+enum SourceType {
+  MANUAL
+  EXCEL
+  GOOGLE_SHEETS
+  DODO_API
+  SEED
+}
+
+enum DataSourceStatus {
+  ACTIVE
+  INACTIVE
+  ERROR
 }
 
 model User {
@@ -113,6 +149,22 @@ model LegalEntity {
   updatedAt      DateTime         @updatedAt
 }
 
+model Unit {
+  id             String          @id @default(cuid())
+  name           String
+  country        String
+  region         String?
+  externalId     String?
+  isActive       Boolean         @default(true)
+  analyticsFacts AnalyticsFact[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([country])
+  @@index([region])
+  @@index([externalId])
+}
+
 model Restaurant {
   id             String           @id @default(cuid())
   name           String
@@ -138,12 +190,18 @@ model MetricArticle {
   code           String             @unique
   name           String
   path           String?
+  category       String?
+  article        String?
+  unitType       String?
+  direction      MetricDirection    @default(NEUTRAL)
+  format         MetricFormat       @default(NUMBER)
   kind           MetricKind         @default(NEUTRAL)
   parentId       String?
   parent         MetricArticle?     @relation("MetricHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children       MetricArticle[]    @relation("MetricHierarchy")
   sortOrder      Int                @default(0)
   active         Boolean            @default(true)
+  analyticsFacts AnalyticsFact[]
   planFactValues PlanFactValue[]
   dailyFacts     DailyFactValue[]
   adjustments    ManualAdjustment[]
@@ -152,6 +210,8 @@ model MetricArticle {
 
   @@index([parentId])
   @@index([kind])
+  @@index([category])
+  @@index([direction])
 }
 
 model PlanFactValue {
@@ -217,15 +277,90 @@ model ManualAdjustment {
 
 model ImportBatch {
   id             String          @id @default(cuid())
+  sourceId       String?
+  dataSource     DataSource?     @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceType     SourceType      @default(EXCEL)
   source         String
   sourceFileName String?
   status         ImportStatus    @default(PENDING)
+  rowsTotal      Int             @default(0)
+  rowsImported   Int             @default(0)
+  rowsFailed     Int             @default(0)
   meta           Json?
+  metaJson       Json?
   importedById   String?
   importedBy     User?           @relation(fields: [importedById], references: [id], onDelete: SetNull)
+  analyticsFacts AnalyticsFact[]
+  rowErrors      ImportRowError[]
   planFactValues PlanFactValue[]
   startedAt      DateTime        @default(now())
   finishedAt     DateTime?
+
+  @@index([sourceId])
+  @@index([sourceType])
+  @@index([status])
+}
+
+model ImportRowError {
+  id            String      @id @default(cuid())
+  importBatchId String
+  importBatch   ImportBatch @relation(fields: [importBatchId], references: [id], onDelete: Cascade)
+  rowNumber     Int
+  field         String?
+  code          String
+  message       String
+  rawJson       Json?
+  createdAt     DateTime    @default(now())
+
+  @@index([importBatchId])
+  @@index([code])
+}
+
+model DataSource {
+  id             String           @id @default(cuid())
+  name           String
+  type           SourceType
+  status         DataSourceStatus @default(ACTIVE)
+  configJson     Json?
+  lastSyncAt     DateTime?
+  importBatches  ImportBatch[]
+  analyticsFacts AnalyticsFact[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([type])
+  @@index([status])
+}
+
+model AnalyticsFact {
+  id            String             @id @default(cuid())
+  date          DateTime
+  country       String
+  region        String?
+  unitId        String?
+  unit          Unit?              @relation(fields: [unitId], references: [id], onDelete: SetNull)
+  metricKey     String
+  metric        MetricArticle      @relation(fields: [metricKey], references: [code], onDelete: Restrict)
+  article       String?
+  valueType     AnalyticsValueType
+  value         Decimal            @db.Decimal(18, 4)
+  currency      String?
+  sourceType    SourceType
+  sourceId      String?
+  dataSource    DataSource?        @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  importBatchId String?
+  importBatch   ImportBatch?       @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([date])
+  @@index([country])
+  @@index([region])
+  @@index([unitId])
+  @@index([metricKey])
+  @@index([valueType])
+  @@index([sourceType])
+  @@index([importBatchId])
 }
 
 model AuditLog {
