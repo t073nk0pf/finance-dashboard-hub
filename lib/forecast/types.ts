@@ -1,22 +1,26 @@
-import type { DashboardFilters } from "@/lib/analytics/filters";
-import type { AnalyticsFact } from "@/lib/analytics/model";
+import type { AnalyticsFact, DateRange, MetricDefinition } from "@/lib/analytics/model";
 
-export type ForecastScenarioName = "base" | "optimistic" | "negative";
+export type ForecastScenario = "base" | "optimistic" | "pessimistic";
 
 export type ForecastInput = {
-  filters: DashboardFilters;
   facts: AnalyticsFact[];
-  scenario: ForecastScenarioName;
+  plan: AnalyticsFact[];
+  dateRange: DateRange;
+  metricDefinitions: MetricDefinition[];
 };
 
 export type ForecastMetricResult = {
+  scenario: ForecastScenario;
   metricKey: string;
-  forecastValue: number;
+  value: number;
   confidence?: number;
-  notes?: string[];
+  meta?: Record<string, unknown>;
 };
 
 export type ForecastResult = {
-  scenario: ForecastScenarioName;
-  metrics: ForecastMetricResult[];
+  scenario: ForecastScenario;
+  metricKey: string;
+  value: number;
+  confidence?: number;
+  meta?: Record<string, unknown>;
 };

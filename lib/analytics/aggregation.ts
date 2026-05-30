@@ -25,3 +25,7 @@ export function aggregateAnalyticsFacts(facts: AnalyticsFact[], filters: Dashboa
     points: [],
   };
 }
+
+export function aggregateFacts(facts: AnalyticsFact[], filters: DashboardFilters): AggregationResult {
+  return aggregateAnalyticsFacts(facts, filters);
+}

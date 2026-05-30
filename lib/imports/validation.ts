@@ -1,20 +1,21 @@
-import type { ImportPreview, ImportRowError, RawImportRow } from "@/lib/imports/types";
+import type { ImportMappingProfile, ImportPreview, ImportValidationResult, RawImportRow } from "@/lib/imports/types";
 import type { SourceType } from "@/lib/analytics/model";
 
-export type ImportValidationResult = {
-  validRows: RawImportRow[];
-  errors: ImportRowError[];
-};
+export function validateImportRows(rows: RawImportRow[], mappingProfile?: ImportMappingProfile): ImportValidationResult {
+  void mappingProfile;
 
-export function validateImportRows(rows: RawImportRow[]): ImportValidationResult {
   return {
     validRows: rows,
     errors: [],
   };
 }
 
-export function createImportPreview(sourceType: SourceType, rows: RawImportRow[]): ImportPreview {
-  const validation = validateImportRows(rows);
+export function createImportPreview(
+  sourceType: SourceType,
+  rows: RawImportRow[],
+  mappingProfile?: ImportMappingProfile,
+): ImportPreview {
+  const validation = validateImportRows(rows, mappingProfile);
 
   return {
     sourceType,

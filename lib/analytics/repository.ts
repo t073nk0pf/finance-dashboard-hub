@@ -11,7 +11,7 @@ export type AnalyticsFactWriteResult = {
 export type AnalyticsRepository = {
   findFacts(filters: DashboardFilters): Promise<AnalyticsFact[]>;
   upsertFacts(facts: AnalyticsFact[]): Promise<AnalyticsFactWriteResult>;
-  listUnits(filters?: Pick<DashboardFilters, "country" | "region">): Promise<Unit[]>;
+  listUnits(filters?: Pick<DashboardFilters, "country" | "region" | "unitId">): Promise<Unit[]>;
   listMetricDefinitions(): Promise<MetricDefinition[]>;
 };
 
@@ -30,4 +30,24 @@ export function createNotImplementedAnalyticsRepository(): AnalyticsRepository {
       return [];
     },
   };
+}
+
+export async function getAnalyticsFacts(
+  filters: DashboardFilters,
+  repository: AnalyticsRepository = createNotImplementedAnalyticsRepository(),
+): Promise<AnalyticsFact[]> {
+  return repository.findFacts(filters);
+}
+
+export async function getMetricDefinitions(
+  repository: AnalyticsRepository = createNotImplementedAnalyticsRepository(),
+): Promise<MetricDefinition[]> {
+  return repository.listMetricDefinitions();
+}
+
+export async function getUnits(
+  scope?: Pick<DashboardFilters, "country" | "region" | "unitId">,
+  repository: AnalyticsRepository = createNotImplementedAnalyticsRepository(),
+): Promise<Unit[]> {
+  return repository.listUnits(scope);
 }
