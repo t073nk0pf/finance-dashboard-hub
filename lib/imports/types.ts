@@ -1,34 +1,48 @@
-import type { AnalyticsFact, SourceType } from "@/lib/analytics/model";
+import type { AnalyticsFact, AnalyticsValueType } from "@/lib/analytics/model";
 
+export type ImportSourceType = "excel" | "csv" | "google_sheets" | "manual";
+export type ImportValidationSeverity = "error" | "warning";
 export type ImportStatus = "pending" | "running" | "completed" | "failed" | "completed_with_errors";
+
+export const importSourceTypes: ImportSourceType[] = ["excel", "csv", "google_sheets", "manual"];
+export const analyticsValueTypes: AnalyticsValueType[] = ["fact", "plan", "forecast", "business_plan"];
 
 export type RawImportRow = {
   rowNumber: number;
   values: Record<string, unknown>;
 };
 
-export type ImportPreviewRow = RawImportRow & {
-  normalized?: NormalizedImportRow;
+export type ImportColumn = {
+  key: string;
+  label: string;
+  index?: number;
+  sampleValues: unknown[];
 };
 
-export type ImportRowError = {
-  rowNumber: number;
-  field?: string;
-  code: string;
-  message: string;
-  rawJson?: Record<string, unknown>;
+export type ImportMappingField = {
+  targetField: ImportTargetField;
+  sourceColumn: string;
+  required: boolean;
+  transform?: string;
 };
+
+export type ImportTargetField =
+  | "date"
+  | "country"
+  | "region"
+  | "unitName"
+  | "unitExternalId"
+  | "metricKey"
+  | "article"
+  | "valueType"
+  | "value"
+  | "currency";
 
 export type ImportMappingProfile = {
-  sourceType: Extract<SourceType, "excel" | "google_sheets" | "manual">;
-  dateColumn: string;
-  countryColumn: string;
-  regionColumn?: string;
-  unitColumn?: string;
-  metricColumn: string;
-  valueTypeColumn: string;
-  valueColumn: string;
-  currencyColumn?: string;
+  id?: string;
+  name: string;
+  sourceType: ImportSourceType;
+  fields: ImportMappingField[];
 };
 
 export type NormalizedImportRow = {
@@ -36,41 +50,90 @@ export type NormalizedImportRow = {
   date: string;
   country: string;
   region?: string | null;
+  unitName?: string | null;
   unitExternalId?: string | null;
   metricKey: string;
   article?: string | null;
-  valueType: AnalyticsFact["valueType"];
+  valueType: AnalyticsValueType;
   value: number;
   currency?: string | null;
-  sourceType: ImportMappingProfile["sourceType"];
+  sourceType: ImportSourceType;
+  raw: Record<string, unknown>;
+};
+
+export type ImportPreviewRow = RawImportRow & {
+  normalized?: NormalizedImportRow;
+};
+
+export type ImportValidationError = {
+  rowNumber: number;
+  field?: string;
+  message: string;
+  severity: ImportValidationSeverity;
+};
+
+export type ImportRowError = ImportValidationError & {
+  code?: string;
+  rawJson?: Record<string, unknown>;
+};
+
+export type ImportValidationOptions = {
+  strictMetricDefinitions?: boolean;
+  allowUnknownUnits?: boolean;
+  allowUnknownMetrics?: boolean;
+  knownMetricKeys?: string[];
 };
 
 export type ImportValidationResult = {
-  validRows: ImportPreviewRow[];
-  errors: ImportRowError[];
-};
-
-export type ImportPreview = {
-  sourceType: SourceType;
+  isValid: boolean;
   rowsTotal: number;
-  rows: ImportPreviewRow[];
-  errors: ImportRowError[];
+  rowsValid: number;
+  rowsInvalid: number;
+  errors: ImportValidationError[];
+  warnings: ImportValidationError[];
 };
 
-export type ImportCommitInput = {
+export type ImportPreviewRequest = {
+  sourceType: ImportSourceType;
+  fileName?: string;
+  sheetName?: string;
+  range?: string;
+  rawRows?: RawImportRow[];
+  mappingProfileId?: string;
+};
+
+export type ImportPreviewResult = {
+  columns: ImportColumn[];
+  rowsPreview: RawImportRow[];
+  rowsTotal: number;
+  detectedSourceType: ImportSourceType;
+  warnings: ImportValidationError[];
+  suggestedMapping?: ImportMappingProfile;
+};
+
+export type ConfirmImportRequest = {
+  sourceType: ImportSourceType;
   sourceId?: string;
-  sourceType: SourceType;
+  mappingProfile: ImportMappingProfile;
   rows: RawImportRow[];
-  createdById?: string;
   meta?: Record<string, unknown>;
 };
 
-export type ImportCommitResult = {
-  batchId: string;
-  status: ImportStatus;
+export type ConfirmImportResult = {
+  importBatchId: string;
   rowsTotal: number;
   rowsImported: number;
   rowsFailed: number;
-  facts: AnalyticsFact[];
-  errors: ImportRowError[];
+  status: ImportStatus;
+  validation: ImportValidationResult;
+};
+
+export type ImportPreview = ImportPreviewResult;
+
+export type ImportCommitInput = ConfirmImportRequest & {
+  createdById?: string;
+};
+
+export type ImportCommitResult = ConfirmImportResult & {
+  facts?: AnalyticsFact[];
 };

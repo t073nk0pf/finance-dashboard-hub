@@ -1,6 +1,6 @@
 export type AnalyticsValueType = "fact" | "plan" | "forecast" | "business_plan";
 export type ValueType = AnalyticsValueType;
-export type SourceType = "manual" | "excel" | "google_sheets" | "dodo_api" | "seed";
+export type SourceType = "manual" | "excel" | "csv" | "google_sheets" | "dodo_api" | "seed";
 export type MetricDirection = "higher_is_better" | "lower_is_better" | "neutral";
 export type MetricFormat = "money" | "percent" | "number" | "pp" | "ratio";
 export type DataSourceStatus = "active" | "inactive" | "error";

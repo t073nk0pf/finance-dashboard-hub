@@ -79,6 +79,7 @@ enum AnalyticsValueType {
 enum SourceType {
   MANUAL
   EXCEL
+  CSV
   GOOGLE_SHEETS
   DODO_API
   SEED
