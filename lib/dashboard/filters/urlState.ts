@@ -65,7 +65,7 @@ export function filtersToSearchParams(filters: Partial<DashboardFilterState>): U
   if (to) params.set("to", to);
   if (filters.aggregationMode) params.set("aggregationMode", filters.aggregationMode);
   if (filters.compareMode && filters.compareMode !== "none") params.set("compareMode", filters.compareMode);
-  if (filters.groupBy && filters.groupBy !== "metric") params.set("groupBy", filters.groupBy);
+  if (filters.groupBy) params.set("groupBy", filters.groupBy);
   if (asOfDate) params.set("asOfDate", asOfDate);
   if (filters.method) params.set("method", filters.method);
 

@@ -11,6 +11,7 @@ const expectations = [
   { route: "/admin/users", type: "login-redirect" },
   { route: "/admin/imports", type: "login-redirect" },
   { route: "/admin/metrics", type: "login-redirect" },
+  { route: "/admin/data-sources", type: "login-redirect" },
   { route: "/api/dashboards/plan-fact", type: "status", status: 401 },
   { route: "/api/dashboards/armenia", type: "status", status: 401 },
 ];
@@ -84,6 +85,7 @@ if (viewerEmail && viewerPassword) {
       { route: "/admin/users", status: 403 },
       { route: "/admin/imports", status: 403 },
       { route: "/admin/metrics", status: 403 },
+      { route: "/admin/data-sources", status: 403 },
       { route: "/admin/forecast-rules", status: 403 },
       { route: "/api/dashboards/plan-fact", status: 200 },
       { route: "/api/dashboards/armenia", status: 200 },

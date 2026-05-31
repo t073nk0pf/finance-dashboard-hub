@@ -35,6 +35,7 @@ export function ActiveFiltersSummary() {
     parts.push(`Period: ${filters.dateRange.from} -> ${filters.dateRange.to}`);
     parts.push(`Mode: ${filters.aggregationMode}`);
     parts.push(`Compare: ${filters.compareMode}`);
+    if (filters.groupBy !== "metric") parts.push(`GroupBy: ${filters.groupBy}`);
     if (filters.metrics.length) parts.push(`Metrics: ${filters.metrics.join(", ")}`);
     if (filters.articles.length) parts.push(`Articles: ${filters.articles.join(", ")}`);
     if (filters.asOfDate) parts.push(`As of: ${filters.asOfDate}`);
@@ -56,6 +57,9 @@ export function ActiveFiltersSummary() {
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.dateRange.from}{" -> "}{filters.dateRange.to}</span>
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.aggregationMode}</span>
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.compareMode}</span>
+          {filters.groupBy !== "metric" ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">groupBy: {filters.groupBy}</span> : null}
+          {filters.metrics.length ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">metrics: {filters.metrics.join(",")}</span> : null}
+          {filters.articles.length ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">articles: {filters.articles.join(",")}</span> : null}
           {filters.asOfDate ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">asOf: {filters.asOfDate}</span> : null}
           {filters.scenarios.length ? (
             <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">scenarios: {filters.scenarios.join(",")}</span>
