@@ -17,7 +17,11 @@ export function ActiveFiltersSummary() {
   const hasDefaultScope = filters.country === "all" && filters.region === "all" && !filters.unitId;
   const hasDefaultModes = filters.aggregationMode === "period" && filters.compareMode === "plan";
   const hasExtraLists = filters.metrics.length > 0 || filters.articles.length > 0;
-  const isDefault = hasDefaultScope && hasDefaultModes && !hasExtraLists;
+  const hasForecastOptions =
+    !!filters.asOfDate ||
+    filters.method !== "current_pace" ||
+    (filters.scenarios.length > 0 && !(filters.scenarios.length === 3 && filters.scenarios.includes("pessimistic") && filters.scenarios.includes("base") && filters.scenarios.includes("optimistic")));
+  const isDefault = hasDefaultScope && hasDefaultModes && !hasExtraLists && !hasForecastOptions;
 
   const summaryText = useMemo(() => {
     if (isDefault) {
@@ -33,6 +37,9 @@ export function ActiveFiltersSummary() {
     parts.push(`Compare: ${filters.compareMode}`);
     if (filters.metrics.length) parts.push(`Metrics: ${filters.metrics.join(", ")}`);
     if (filters.articles.length) parts.push(`Articles: ${filters.articles.join(", ")}`);
+    if (filters.asOfDate) parts.push(`As of: ${filters.asOfDate}`);
+    if (filters.scenarios.length) parts.push(`Scenarios: ${filters.scenarios.join(", ")}`);
+    if (filters.method) parts.push(`Method: ${filters.method}`);
     return parts.join(" · ");
   }, [filters, isDefault]);
 
@@ -49,6 +56,11 @@ export function ActiveFiltersSummary() {
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.dateRange.from}{" -> "}{filters.dateRange.to}</span>
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.aggregationMode}</span>
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.compareMode}</span>
+          {filters.asOfDate ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">asOf: {filters.asOfDate}</span> : null}
+          {filters.scenarios.length ? (
+            <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">scenarios: {filters.scenarios.join(",")}</span>
+          ) : null}
+          {filters.method ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">method: {filters.method}</span> : null}
         </div>
       ) : null}
     </section>

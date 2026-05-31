@@ -17,12 +17,13 @@ function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 
-function startDevServer(port, filtersEnabled) {
+function startDevServer(port, filtersEnabled, advancedEnabled) {
   return spawn("npm", ["run", "dev"], {
     env: {
       ...process.env,
       PORT: String(port),
       NEXT_PUBLIC_DASHBOARD_FILTERS_ENABLED: filtersEnabled ? "true" : "false",
+      NEXT_PUBLIC_FORECAST_ADVANCED_FILTERS_ENABLED: advancedEnabled ? "true" : "false",
       USE_ANALYTICS_ENGINE: "true",
       USE_DASHBOARD_TEMPLATE: "true",
     },
@@ -81,9 +82,9 @@ function assertForecastShape(body) {
 }
 
 async function checkMode(mode) {
-  const port = mode.filtersEnabled ? 3138 : 3137;
+  const port = mode.port;
   const baseUrl = `http://localhost:${port}`;
-  const child = startDevServer(port, mode.filtersEnabled);
+  const child = startDevServer(port, mode.filtersEnabled, mode.advancedEnabled);
   try {
     await waitForServer(baseUrl);
     const cookie = await login(baseUrl);
@@ -109,6 +110,16 @@ async function checkMode(mode) {
     assert(badQuery.response.status === 200, `${mode.name}: /api/forecast with bad query should still be 200`);
     assertForecastShape(badQuery.body);
 
+    const advancedQuery = await fetchJson(
+      `${baseUrl}/api/forecast?country=armenia&from=2026-05-01&to=2026-05-31&asOfDate=2026-05-17&scenarios=base,optimistic&method=current_pace`,
+      { headers },
+    );
+    assert(advancedQuery.response.status === 200, `${mode.name}: /api/forecast advanced params should be 200`);
+    assertForecastShape(advancedQuery.body);
+
+    const planFactPage = await fetch(`${baseUrl}/dashboards/plan-fact`, { headers, redirect: "manual" });
+    assert(planFactPage.status === 200, `${mode.name}: /dashboards/plan-fact should remain 200`);
+
     console.log(`OK  ${mode.name} forecast page/query and API query wiring`);
   } finally {
     stopDevServer(child);
@@ -126,6 +137,15 @@ async function run() {
   assert(url.includes("country=armenia"), "buildDashboardUrl should include country");
   assert(url.includes("from=2026-05-01"), "buildDashboardUrl should include from");
   assert(url.includes("to=2026-05-31"), "buildDashboardUrl should include to");
+  const advancedUrl = buildDashboardUrl("/dashboards/forecast", {
+    country: "armenia",
+    dateRange: { from: "2026-05-01", to: "2026-05-31" },
+    asOfDate: "2026-05-17",
+    scenarios: ["base", "optimistic"],
+    method: "current_pace",
+  });
+  assert(advancedUrl.includes("asOfDate=2026-05-17"), "buildDashboardUrl should include asOfDate");
+  assert(advancedUrl.includes("scenarios=base%2Coptimistic"), "buildDashboardUrl should include scenarios CSV");
   console.log("OK  buildDashboardUrl for forecast");
 
   const validRange = validateDashboardFilters({
@@ -134,8 +154,9 @@ async function run() {
   assert(validRange.isValid, "date validation should be valid when from <= to");
   console.log("OK  forecast filter validation helper");
 
-  await checkMode({ name: "filters-disabled", filtersEnabled: false });
-  await checkMode({ name: "filters-enabled", filtersEnabled: true });
+  await checkMode({ name: "filters-disabled", filtersEnabled: false, advancedEnabled: false, port: 3137 });
+  await checkMode({ name: "filters-enabled-advanced-disabled", filtersEnabled: true, advancedEnabled: false, port: 3138 });
+  await checkMode({ name: "filters-enabled-advanced-enabled", filtersEnabled: true, advancedEnabled: true, port: 3139 });
 
   console.log("Forecast filter wiring checks passed.");
 }

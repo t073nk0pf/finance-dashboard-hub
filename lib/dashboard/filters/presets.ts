@@ -62,7 +62,7 @@ export function applyPreset(baseFilters: DashboardFilterState, presetId: string,
     if (typeof value === "string") params.set(key, value);
   });
   return {
-    ...searchParamsToFilters(params, today),
+    ...searchParamsToFilters(params),
     ...next,
   };
 }

@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ActiveFiltersSummary } from "@/components/dashboard/filters/ActiveFiltersSummary";
 import { DashboardFilterBar } from "@/components/dashboard/filters/DashboardFilterBar";
+import { ForecastAdvancedFilterControls } from "@/components/dashboard/filters/ForecastAdvancedFilterControls";
 import { AppShell } from "@/components/layout/AppShell";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { DashboardForecastApiResponse } from "@/lib/dashboard/types";
@@ -16,6 +17,7 @@ function ForecastPageContent() {
   const searchParams = useSearchParams();
   const queryString = searchParams?.toString() ?? "";
   const filtersEnabled = process.env.NEXT_PUBLIC_DASHBOARD_FILTERS_ENABLED === "true";
+  const forecastAdvancedFiltersEnabled = process.env.NEXT_PUBLIC_FORECAST_ADVANCED_FILTERS_ENABLED === "true";
   const [data, setData] = useState<DashboardForecastApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +60,7 @@ function ForecastPageContent() {
       {filtersEnabled ? (
         <>
           <DashboardFilterBar />
+          {forecastAdvancedFiltersEnabled ? <ForecastAdvancedFilterControls /> : null}
           <ActiveFiltersSummary />
         </>
       ) : null}

@@ -23,7 +23,7 @@ function parseCsv(value: string | null): string[] {
     .filter(Boolean);
 }
 
-export function searchParamsToFilters(searchParams: URLSearchParams, today = new Date()): DashboardFilterState {
+export function searchParamsToFilters(searchParams: URLSearchParams): DashboardFilterState {
   const parsed = parseDashboardQueryParams(searchParams);
 
   return {
@@ -40,7 +40,7 @@ export function searchParamsToFilters(searchParams: URLSearchParams, today = new
     metrics: parsed.metrics ?? [],
     articles: parsed.articles ?? [],
     valueTypes: parsed.filters.valueTypes,
-    asOfDate: parsed.asOfDate ?? toDateOnly(today.toISOString()),
+    asOfDate: parsed.asOfDate ?? undefined,
     scenarios: parsed.scenarios ?? ["pessimistic", "base", "optimistic"],
     method: parsed.method,
   };
