@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { buildDashboardUrl } from "../lib/dashboard/filters/urlState.ts";
+import { validateDashboardFilters } from "../lib/dashboard/filters/validation.ts";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@example.com";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin";
@@ -132,6 +133,32 @@ async function run() {
   assert(url.includes("from=2026-05-01"), "buildDashboardUrl should include from");
   assert(url.includes("to=2026-05-31"), "buildDashboardUrl should include to");
   console.log("OK  buildDashboardUrl for plan-fact");
+
+  const validRange = validateDashboardFilters({
+    dateRange: { from: "2026-05-01", to: "2026-05-31" },
+  });
+  assert(validRange.isValid, "date validation should be valid when from <= to");
+
+  const invalidRange = validateDashboardFilters({
+    dateRange: { from: "2026-06-01", to: "2026-05-01" },
+  });
+  assert(!invalidRange.isValid, "date validation should be invalid when from > to");
+
+  const missingTo = validateDashboardFilters({
+    dateRange: { from: "2026-05-01", to: "" },
+  });
+  assert(!missingTo.isValid, "date validation should be invalid when from exists and to is empty");
+
+  const missingFrom = validateDashboardFilters({
+    dateRange: { from: "", to: "2026-05-31" },
+  });
+  assert(!missingFrom.isValid, "date validation should be invalid when to exists and from is empty");
+
+  const bothEmpty = validateDashboardFilters({
+    dateRange: { from: "", to: "" },
+  });
+  assert(bothEmpty.isValid, "date validation should be valid when both dates are empty");
+  console.log("OK  date range validation helper");
 
   await checkMode({ name: "filters-disabled", filtersEnabled: false });
   await checkMode({ name: "filters-enabled", filtersEnabled: true });

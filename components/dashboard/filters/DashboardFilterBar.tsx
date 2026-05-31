@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { DashboardFilterConfig, DashboardFilterState } from "@/lib/dashboard/filters/types";
+import { validateDashboardFilters } from "@/lib/dashboard/filters/validation";
 
 type FilterConfigResponse = {
   filters: DashboardFilterState;
@@ -87,6 +88,8 @@ export function DashboardFilterBar() {
 
   const regionOptions = useMemo(() => [{ value: "all", label: "all" }, ...config.regions.filter((item) => item.value !== "all")], [config.regions]);
   const unitOptions = useMemo(() => [{ value: "all", label: "all" }, ...config.units.filter((item) => item.value !== "all")], [config.units]);
+  const validation = useMemo(() => validateDashboardFilters(draft), [draft]);
+  const dateRangeError = validation.errors.find((errorItem) => errorItem.field.startsWith("dateRange"));
 
   return (
     <section className="rounded-lg border border-line bg-surface p-3 shadow-soft">
@@ -196,8 +199,9 @@ export function DashboardFilterBar() {
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
-          className="rounded border border-line bg-navy px-3 py-1 text-sm font-semibold text-white"
+          className="rounded border border-line bg-navy px-3 py-1 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() => setFilters(draft)}
+          disabled={!validation.isValid}
         >
           Apply
         </button>
@@ -210,6 +214,7 @@ export function DashboardFilterBar() {
         </button>
         {loading ? <span className="text-xs text-muted">Loading filter config...</span> : null}
         {error ? <span className="text-xs text-negative">Config error: {error}</span> : null}
+        {!error && dateRangeError ? <span className="text-xs text-warning">{dateRangeError.message}</span> : null}
         {!error && warnings.length ? <span className="text-xs text-warning">Warnings: {warnings.join(", ")}</span> : null}
       </div>
     </section>
