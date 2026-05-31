@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { EntityCards } from "@/components/dashboard/EntityCards";
 import { EntityTable } from "@/components/dashboard/EntityTable";
 import { ExecutiveSummary } from "@/components/dashboard/ExecutiveSummary";
+import { ActiveFiltersSummary } from "@/components/dashboard/filters/ActiveFiltersSummary";
 import { DashboardFilterBar } from "@/components/dashboard/filters/DashboardFilterBar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { LineChartCard } from "@/components/dashboard/LineChartCard";
@@ -88,7 +89,12 @@ function PlanFactPageContent() {
 
       {!loading && !error && data && metrics ? (
         <>
-          {filtersEnabled ? <DashboardFilterBar /> : null}
+          {filtersEnabled ? (
+            <>
+              <DashboardFilterBar />
+              <ActiveFiltersSummary />
+            </>
+          ) : null}
 
           <ExecutiveSummary data={data} />
 
