@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { EntityCards } from "@/components/dashboard/EntityCards";
 import { EntityTable } from "@/components/dashboard/EntityTable";
 import { ExecutiveSummary } from "@/components/dashboard/ExecutiveSummary";
+import { DashboardFilterBar } from "@/components/dashboard/filters/DashboardFilterBar";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { LineChartCard } from "@/components/dashboard/LineChartCard";
 import { MainArticlesTable } from "@/components/dashboard/MainArticlesTable";
@@ -23,7 +26,10 @@ function PlanFactLoadingState() {
   );
 }
 
-export default function PlanFactPage() {
+function PlanFactPageContent() {
+  const searchParams = useSearchParams();
+  const queryString = searchParams?.toString() ?? "";
+  const filtersEnabled = process.env.NEXT_PUBLIC_DASHBOARD_FILTERS_ENABLED === "true";
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +42,8 @@ export default function PlanFactPage() {
       setError(null);
 
       try {
-        const response = await fetch("/api/dashboards/plan-fact", {
+        const url = queryString ? `/api/dashboards/plan-fact?${queryString}` : "/api/dashboards/plan-fact";
+        const response = await fetch(url, {
           headers: { Accept: "application/json" },
           cache: "no-store",
         });
@@ -60,7 +67,7 @@ export default function PlanFactPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [queryString]);
 
   const metrics = data?.metrics;
 
@@ -81,6 +88,8 @@ export default function PlanFactPage() {
 
       {!loading && !error && data && metrics ? (
         <>
+          {filtersEnabled ? <DashboardFilterBar /> : null}
+
           <ExecutiveSummary data={data} />
 
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -115,5 +124,13 @@ export default function PlanFactPage() {
         </>
       ) : null}
     </AppShell>
+  );
+}
+
+export default function PlanFactPage() {
+  return (
+    <Suspense fallback={<AppShell title="План-факт 2026" description="Загрузка..." period="загрузка" legalEntities="загрузка"><PlanFactLoadingState /></AppShell>}>
+      <PlanFactPageContent />
+    </Suspense>
   );
 }
