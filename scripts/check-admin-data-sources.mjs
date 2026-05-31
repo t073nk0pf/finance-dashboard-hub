@@ -99,6 +99,8 @@ function assertDataSourcesShape(body) {
   assert(isObject(body), "data-sources response must be object");
   assert(Array.isArray(body.sources), "data-sources.sources must be array");
   assert(isObject(body.summary), "data-sources.summary must be object");
+  assert(isObject(body.pagination), "data-sources.pagination must be object");
+  assert(isObject(body.filters), "data-sources.filters must be object");
   assert(isObject(body.meta), "data-sources.meta must be object");
 }
 
@@ -106,6 +108,8 @@ function assertImportBatchesShape(body) {
   assert(isObject(body), "import-batches response must be object");
   assert(Array.isArray(body.batches), "import-batches.batches must be array");
   assert(isObject(body.summary), "import-batches.summary must be object");
+  assert(isObject(body.pagination), "import-batches.pagination must be object");
+  assert(isObject(body.filters), "import-batches.filters must be object");
   assert(isObject(body.meta), "import-batches.meta must be object");
 }
 
@@ -115,6 +119,9 @@ function assertDataSourceDetailsShape(body) {
   assert(isObject(body.summary), "data-source-details.summary must be object");
   assert(Array.isArray(body.recentBatches), "data-source-details.recentBatches must be array");
   assert(Array.isArray(body.recentErrors), "data-source-details.recentErrors must be array");
+  assert(isObject(body.batchesPagination), "data-source-details.batchesPagination must be object");
+  assert(isObject(body.errorsPagination), "data-source-details.errorsPagination must be object");
+  assert(isObject(body.filters), "data-source-details.filters must be object");
   assert(isObject(body.meta), "data-source-details.meta must be object");
 }
 
@@ -130,53 +137,82 @@ async function run() {
 
     const unauthSources = await fetchJson(`${baseUrl}/api/admin/data-sources`);
     assert(unauthSources.response.status === 401, "unauth /api/admin/data-sources must be 401");
-
     const unauthBatches = await fetchJson(`${baseUrl}/api/admin/import-batches`);
     assert(unauthBatches.response.status === 401, "unauth /api/admin/import-batches must be 401");
+    const unauthDetails = await fetchJson(`${baseUrl}/api/admin/data-sources/non-existing-id`);
+    assert(unauthDetails.response.status === 401, "unauth /api/admin/data-sources/[id] must be 401");
 
     const viewerCookie = await login(baseUrl, VIEWER_EMAIL, VIEWER_PASSWORD);
     const viewerHeaders = { Cookie: viewerCookie };
     const viewerSources = await fetchJson(`${baseUrl}/api/admin/data-sources`, { headers: viewerHeaders });
     assert(viewerSources.response.status === 403, "viewer /api/admin/data-sources must be 403");
-
     const viewerBatches = await fetchJson(`${baseUrl}/api/admin/import-batches`, { headers: viewerHeaders });
     assert(viewerBatches.response.status === 403, "viewer /api/admin/import-batches must be 403");
-
     const viewerDetails = await fetchJson(`${baseUrl}/api/admin/data-sources/non-existing-id`, { headers: viewerHeaders });
     assert(viewerDetails.response.status === 403, "viewer /api/admin/data-sources/[id] must be 403");
 
     const adminCookie = await login(baseUrl, ADMIN_EMAIL, ADMIN_PASSWORD);
     const adminHeaders = { Cookie: adminCookie };
 
-    const adminPage = await fetch(`${baseUrl}/admin/data-sources`, { headers: adminHeaders, redirect: "manual" });
-    assert(adminPage.status === 200, "admin /admin/data-sources must be 200");
-
-    const adminSources = await fetchJson(`${baseUrl}/api/admin/data-sources`, { headers: adminHeaders });
-    assert(adminSources.response.status === 200, "admin /api/admin/data-sources must be 200");
+    const adminSources = await fetchJson(
+      `${baseUrl}/api/admin/data-sources?status=active&type=dodo_api&search=test&limit=5&offset=0`,
+      { headers: adminHeaders },
+    );
+    assert(adminSources.response.status === 200, "admin /api/admin/data-sources with filters must be 200");
     assertDataSourcesShape(adminSources.body);
 
-    const adminBatches = await fetchJson(`${baseUrl}/api/admin/import-batches`, { headers: adminHeaders });
-    assert(adminBatches.response.status === 200, "admin /api/admin/import-batches must be 200");
+    const adminBatches = await fetchJson(
+      `${baseUrl}/api/admin/import-batches?status=completed&sourceType=seed&from=2026-05-01&to=2026-05-31&limit=5&offset=0`,
+      { headers: adminHeaders },
+    );
+    assert(adminBatches.response.status === 200, "admin /api/admin/import-batches with filters must be 200");
     assertImportBatchesShape(adminBatches.body);
 
-    const unauthDetails = await fetchJson(`${baseUrl}/api/admin/data-sources/non-existing-id`);
-    assert(unauthDetails.response.status === 401, "unauth /api/admin/data-sources/[id] must be 401");
+    const badSources = await fetchJson(`${baseUrl}/api/admin/data-sources?limit=9999&offset=-20`, { headers: adminHeaders });
+    assert(badSources.response.status === 200, "bad pagination in /api/admin/data-sources must be controlled");
+    assertDataSourcesShape(badSources.body);
 
-    const firstSourceId = adminSources.body.sources[0]?.id;
-    if (firstSourceId) {
-      const detailsApi = await fetchJson(`${baseUrl}/api/admin/data-sources/${firstSourceId}`, { headers: adminHeaders });
-      assert(detailsApi.response.status === 200, "admin /api/admin/data-sources/[id] must be 200 when source exists");
+    const badBatches = await fetchJson(
+      `${baseUrl}/api/admin/import-batches?from=bad-date&to=bad-date&offset=-1&limit=9999`,
+      { headers: adminHeaders },
+    );
+    assert(badBatches.response.status === 200, "bad params in /api/admin/import-batches must be controlled");
+    assertImportBatchesShape(badBatches.body);
+
+    const badRangeBatches = await fetchJson(
+      `${baseUrl}/api/admin/import-batches?from=2026-06-01&to=2026-05-01`,
+      { headers: adminHeaders },
+    );
+    assert(badRangeBatches.response.status === 200, "from>to in /api/admin/import-batches must be controlled");
+    assertImportBatchesShape(badRangeBatches.body);
+
+    const sourceId = adminSources.body.sources[0]?.id;
+    if (sourceId) {
+      const detailsApi = await fetchJson(
+        `${baseUrl}/api/admin/data-sources/${sourceId}?batchStatus=completed&batchLimit=5&batchOffset=0&errorLimit=5&errorOffset=0`,
+        { headers: adminHeaders },
+      );
+      assert(detailsApi.response.status === 200, "details API must return 200 for existing source");
       assertDataSourceDetailsShape(detailsApi.body);
 
-      const detailsPage = await fetch(`${baseUrl}/admin/data-sources/${firstSourceId}`, {
-        headers: adminHeaders,
-        redirect: "manual",
-      });
-      assert(detailsPage.status === 200, "admin /admin/data-sources/[id] must be 200 when source exists");
+      const detailsPage = await fetch(
+        `${baseUrl}/admin/data-sources/${sourceId}?batchStatus=completed&batchLimit=5&errorLimit=5`,
+        { headers: adminHeaders, redirect: "manual" },
+      );
+      assert(detailsPage.status === 200, "details page must return 200 for existing source");
     } else {
       const missingDetails = await fetchJson(`${baseUrl}/api/admin/data-sources/non-existing-id`, { headers: adminHeaders });
-      assert(missingDetails.response.status === 404, "admin unknown source id must return 404");
+      assert(missingDetails.response.status === 404, "unknown source id must return 404");
     }
+
+    const unknownDetails = await fetchJson(`${baseUrl}/api/admin/data-sources/non-existing-id`, { headers: adminHeaders });
+    assert(unknownDetails.response.status === 404, "unknown source id must return 404");
+
+    const adminListPage = await fetch(`${baseUrl}/admin/data-sources?status=active`, {
+      headers: adminHeaders,
+      redirect: "manual",
+    });
+    assert(adminListPage.status === 200, "admin /admin/data-sources with filters must be 200");
 
     const adminUsers = await fetch(`${baseUrl}/admin/users`, { headers: adminHeaders, redirect: "manual" });
     const adminImports = await fetch(`${baseUrl}/admin/imports`, { headers: adminHeaders, redirect: "manual" });

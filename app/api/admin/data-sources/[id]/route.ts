@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AuthRequiredError, requireRole, RoleRequiredError } from "@/lib/auth/session";
-import { getAdminDataSourceDetails } from "@/lib/admin/dataSourcesService";
+import { getAdminDataSourceDetails, normalizeAdminDataSourceDetailsFilters } from "@/lib/admin/dataSourcesService";
 
 export const runtime = "nodejs";
 
@@ -14,12 +14,21 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
   try {
     await requireRole(request, ["ADMIN"]);
     const { id } = await context.params;
+    const normalized = normalizeAdminDataSourceDetailsFilters(request.nextUrl.searchParams);
 
     if (!id) {
       return NextResponse.json({ error: "Invalid data source id" }, { status: 400 });
     }
 
-    const details = await getAdminDataSourceDetails(id);
+    const details = await getAdminDataSourceDetails(id, {
+      batchStatus: normalized.batchStatus,
+      batchFrom: normalized.batchFrom,
+      batchTo: normalized.batchTo,
+      batchLimit: normalized.batchLimit,
+      batchOffset: normalized.batchOffset,
+      errorLimit: normalized.errorLimit,
+      errorOffset: normalized.errorOffset,
+    });
     if (!details) {
       return NextResponse.json({ error: "Data source not found" }, { status: 404 });
     }
@@ -29,6 +38,7 @@ export async function GET(request: NextRequest, context: { params: Promise<{ id:
       meta: {
         generatedAt: new Date().toISOString(),
         source: "admin_data_source_details",
+        warnings: normalized.warnings,
       },
     });
   } catch (error) {

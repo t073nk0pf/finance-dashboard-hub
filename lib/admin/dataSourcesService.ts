@@ -1,5 +1,15 @@
-import { DataSourceStatus, ImportStatus, SourceType } from "@prisma/client";
+import { DataSourceStatus, ImportStatus, Prisma, SourceType } from "@prisma/client";
 import { db } from "@/lib/db";
+
+const DEFAULT_LIMIT = 20;
+const MAX_LIMIT = 100;
+
+export type AdminPagination = {
+  limit: number;
+  offset: number;
+  total: number;
+  hasMore: boolean;
+};
 
 export type AdminDataSourceItem = {
   id: string;
@@ -74,6 +84,44 @@ export type AdminDataSourceDetails = {
     severity: string;
     createdAt: string;
   }>;
+  batchesPagination: AdminPagination;
+  errorsPagination: AdminPagination;
+  filters: {
+    batchStatus?: string;
+    batchFrom?: string;
+    batchTo?: string;
+  };
+};
+
+export type AdminDataSourceFilters = {
+  type?: string;
+  status?: string;
+  search?: string;
+  limit: number;
+  offset: number;
+  warnings: string[];
+};
+
+export type AdminImportBatchFilters = {
+  sourceId?: string;
+  sourceType?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  limit: number;
+  offset: number;
+  warnings: string[];
+};
+
+export type AdminDataSourceDetailsFilters = {
+  batchStatus?: string;
+  batchFrom?: string;
+  batchTo?: string;
+  batchLimit: number;
+  batchOffset: number;
+  errorLimit: number;
+  errorOffset: number;
+  warnings: string[];
 };
 
 function toLowerEnum(value: string): string {
@@ -90,78 +138,191 @@ function buildErrorSummary(rowsFailed: number, rowErrorsCount: number): string |
   return `failed rows: ${rowsFailed}, errors: ${rowErrorsCount}`;
 }
 
-export async function listAdminDataSources(): Promise<AdminDataSourceItem[]> {
-  const sources = await db.dataSource.findMany({
-    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
-    include: {
-      importBatches: {
-        orderBy: { startedAt: "desc" },
-        take: 1,
-      },
-    },
-  });
-
-  return sources.map((source) => {
-    const lastBatch = source.importBatches[0];
-    return {
-      id: source.id,
-      name: source.name,
-      type: toLowerEnum(source.type),
-      status: toLowerEnum(source.status),
-      lastSyncAt: source.lastSyncAt?.toISOString() ?? null,
-      lastImportBatchId: lastBatch?.id ?? null,
-      rowsImported: lastBatch?.rowsImported ?? 0,
-      rowsFailed: lastBatch?.rowsFailed ?? 0,
-      createdAt: source.createdAt.toISOString(),
-      updatedAt: source.updatedAt.toISOString(),
-      meta: parseMeta(source.configJson),
-    };
-  });
+function sanitizeLimit(value: string | null, warnings: string[], fallback = DEFAULT_LIMIT): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    warnings.push("invalid_limit");
+    return fallback;
+  }
+  if (parsed > MAX_LIMIT) {
+    warnings.push("limit_capped_to_max");
+    return MAX_LIMIT;
+  }
+  return parsed;
 }
 
-export function getAdminDataSourcesSummary(sources: AdminDataSourceItem[]): AdminDataSourcesSummary {
+function sanitizeOffset(value: string | null, warnings: string[]): number {
+  if (!value) return 0;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    warnings.push("invalid_offset");
+    return 0;
+  }
+  return parsed;
+}
+
+function normalizeEnumValue<T extends string>(value: string | null, allowed: readonly T[], warnings: string[], warningLabel: string): T | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toUpperCase();
+  const found = allowed.find((candidate) => candidate === normalized);
+  if (!found) {
+    warnings.push(warningLabel);
+    return undefined;
+  }
+  return found;
+}
+
+function parseIsoDate(value: string | null, warnings: string[], warningLabel: string): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) {
+    warnings.push(warningLabel);
+    return undefined;
+  }
+  return date.toISOString();
+}
+
+function maybeBoundedDateRange(fromIso: string | undefined, toIso: string | undefined, warnings: string[]): { fromIso?: string; toIso?: string } {
+  if (!fromIso || !toIso) return { fromIso, toIso };
+  if (new Date(fromIso).getTime() > new Date(toIso).getTime()) {
+    warnings.push("invalid_date_range");
+    return {};
+  }
+  return { fromIso, toIso };
+}
+
+function toPagination(limit: number, offset: number, total: number): AdminPagination {
   return {
-    total: sources.length,
-    active: sources.filter((item) => item.status === toLowerEnum(DataSourceStatus.ACTIVE)).length,
-    failed: sources.filter((item) => item.status === toLowerEnum(DataSourceStatus.ERROR)).length,
-    neverSynced: sources.filter((item) => !item.lastSyncAt).length,
+    limit,
+    offset,
+    total,
+    hasMore: offset + limit < total,
   };
 }
 
-type ListBatchesInput = {
-  sourceId?: string;
-  status?: string;
-  limit?: number;
-};
+export function normalizeAdminDataSourceFilters(searchParams: URLSearchParams): AdminDataSourceFilters {
+  const warnings: string[] = [];
+  const limit = sanitizeLimit(searchParams.get("limit"), warnings);
+  const offset = sanitizeOffset(searchParams.get("offset"), warnings);
+  const typeEnum = normalizeEnumValue(searchParams.get("type"), Object.values(SourceType), warnings, "invalid_type");
+  const statusEnum = normalizeEnumValue(searchParams.get("status"), Object.values(DataSourceStatus), warnings, "invalid_status");
+  const searchRaw = searchParams.get("search")?.trim() ?? "";
+  const search = searchRaw.length ? searchRaw.slice(0, 128) : undefined;
 
-function toImportStatus(status?: string): ImportStatus | undefined {
-  if (!status) return undefined;
-  const normalized = status.trim().toUpperCase();
-  return Object.values(ImportStatus).includes(normalized as ImportStatus) ? (normalized as ImportStatus) : undefined;
+  return {
+    type: typeEnum ? toLowerEnum(typeEnum) : undefined,
+    status: statusEnum ? toLowerEnum(statusEnum) : undefined,
+    search,
+    limit,
+    offset,
+    warnings,
+  };
 }
 
-export async function listAdminImportBatches(input: ListBatchesInput = {}): Promise<AdminImportBatchItem[]> {
-  const limit = Number.isFinite(input.limit) ? Math.min(Math.max(Number(input.limit), 1), 200) : 50;
-  const status = toImportStatus(input.status);
+export function normalizeAdminImportBatchFilters(searchParams: URLSearchParams): AdminImportBatchFilters {
+  const warnings: string[] = [];
+  const limit = sanitizeLimit(searchParams.get("limit"), warnings);
+  const offset = sanitizeOffset(searchParams.get("offset"), warnings);
+  const statusEnum = normalizeEnumValue(searchParams.get("status"), Object.values(ImportStatus), warnings, "invalid_status");
+  const sourceTypeEnum = normalizeEnumValue(searchParams.get("sourceType"), Object.values(SourceType), warnings, "invalid_source_type");
+  const sourceId = searchParams.get("sourceId")?.trim() || undefined;
+  const fromIso = parseIsoDate(searchParams.get("from"), warnings, "invalid_from_date");
+  const toIso = parseIsoDate(searchParams.get("to"), warnings, "invalid_to_date");
+  const bounded = maybeBoundedDateRange(fromIso, toIso, warnings);
 
-  const batches = await db.importBatch.findMany({
-    where: {
-      sourceId: input.sourceId ?? undefined,
-      status: status ?? undefined,
-    },
-    orderBy: { startedAt: "desc" },
-    take: limit,
-    include: {
-      importedBy: {
-        select: { email: true },
-      },
-      rowErrors: {
-        select: { id: true },
-      },
-    },
-  });
+  return {
+    sourceId,
+    sourceType: sourceTypeEnum ? toLowerEnum(sourceTypeEnum) : undefined,
+    status: statusEnum ? toLowerEnum(statusEnum) : undefined,
+    from: bounded.fromIso ? bounded.fromIso.slice(0, 10) : undefined,
+    to: bounded.toIso ? bounded.toIso.slice(0, 10) : undefined,
+    limit,
+    offset,
+    warnings,
+  };
+}
 
-  return batches.map((batch) => ({
+export function normalizeAdminDataSourceDetailsFilters(searchParams: URLSearchParams): AdminDataSourceDetailsFilters {
+  const warnings: string[] = [];
+  const batchLimit = sanitizeLimit(searchParams.get("batchLimit"), warnings);
+  const batchOffset = sanitizeOffset(searchParams.get("batchOffset"), warnings);
+  const errorLimit = sanitizeLimit(searchParams.get("errorLimit"), warnings);
+  const errorOffset = sanitizeOffset(searchParams.get("errorOffset"), warnings);
+  const batchStatusEnum = normalizeEnumValue(searchParams.get("batchStatus"), Object.values(ImportStatus), warnings, "invalid_batch_status");
+  const batchFromIso = parseIsoDate(searchParams.get("batchFrom"), warnings, "invalid_batch_from_date");
+  const batchToIso = parseIsoDate(searchParams.get("batchTo"), warnings, "invalid_batch_to_date");
+  const bounded = maybeBoundedDateRange(batchFromIso, batchToIso, warnings);
+
+  return {
+    batchStatus: batchStatusEnum ? toLowerEnum(batchStatusEnum) : undefined,
+    batchFrom: bounded.fromIso ? bounded.fromIso.slice(0, 10) : undefined,
+    batchTo: bounded.toIso ? bounded.toIso.slice(0, 10) : undefined,
+    batchLimit,
+    batchOffset,
+    errorLimit,
+    errorOffset,
+    warnings,
+  };
+}
+
+type ListDataSourcesInput = Omit<AdminDataSourceFilters, "warnings">;
+type ListBatchesInput = Omit<AdminImportBatchFilters, "warnings">;
+type ListSourceBatchesInput = {
+  sourceId: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  limit: number;
+  offset: number;
+};
+type ListSourceErrorsInput = {
+  sourceId: string;
+  limit: number;
+  offset: number;
+};
+
+function mapDataSource(source: {
+  id: string;
+  name: string;
+  type: SourceType;
+  status: DataSourceStatus;
+  lastSyncAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  configJson: Prisma.JsonValue | null;
+  importBatches: Array<{ id: string; rowsImported: number; rowsFailed: number }>;
+}): AdminDataSourceItem {
+  const lastBatch = source.importBatches[0];
+  return {
+    id: source.id,
+    name: source.name,
+    type: toLowerEnum(source.type),
+    status: toLowerEnum(source.status),
+    lastSyncAt: source.lastSyncAt?.toISOString() ?? null,
+    lastImportBatchId: lastBatch?.id ?? null,
+    rowsImported: lastBatch?.rowsImported ?? 0,
+    rowsFailed: lastBatch?.rowsFailed ?? 0,
+    createdAt: source.createdAt.toISOString(),
+    updatedAt: source.updatedAt.toISOString(),
+    meta: parseMeta(source.configJson),
+  };
+}
+
+function mapImportBatch(batch: {
+  id: string;
+  sourceId: string | null;
+  sourceType: SourceType;
+  status: ImportStatus;
+  rowsTotal: number;
+  rowsImported: number;
+  rowsFailed: number;
+  startedAt: Date;
+  finishedAt: Date | null;
+  importedBy: { email: string } | null;
+  rowErrors: Array<{ id: string }>;
+}): AdminImportBatchItem {
+  return {
     id: batch.id,
     sourceId: batch.sourceId ?? null,
     sourceType: toLowerEnum(batch.sourceType),
@@ -173,105 +334,265 @@ export async function listAdminImportBatches(input: ListBatchesInput = {}): Prom
     finishedAt: batch.finishedAt?.toISOString() ?? null,
     createdBy: batch.importedBy?.email ?? null,
     errorSummary: buildErrorSummary(batch.rowsFailed, batch.rowErrors.length),
-  }));
-}
-
-export function getAdminImportBatchesSummary(batches: AdminImportBatchItem[]): AdminImportBatchesSummary {
-  return {
-    total: batches.length,
-    completed: batches.filter((item) => item.status === toLowerEnum(ImportStatus.COMPLETED) || item.status === toLowerEnum(ImportStatus.COMPLETED_WITH_ERRORS)).length,
-    failed: batches.filter((item) => item.status === toLowerEnum(ImportStatus.FAILED)).length,
-    running: batches.filter((item) => item.status === toLowerEnum(ImportStatus.RUNNING)).length,
-    draft: batches.filter((item) => item.status === toLowerEnum(ImportStatus.PENDING)).length,
   };
 }
 
-export function isValidSourceType(value?: string): value is SourceType {
-  if (!value) return false;
+function toSourceTypeEnum(value?: string): SourceType | undefined {
+  if (!value) return undefined;
   const normalized = value.trim().toUpperCase();
-  return Object.values(SourceType).includes(normalized as SourceType);
+  return Object.values(SourceType).includes(normalized as SourceType) ? (normalized as SourceType) : undefined;
 }
 
-export async function listRecentImportBatchesForSource(sourceId: string, limit = 20): Promise<AdminImportBatchItem[]> {
+function toDataSourceStatusEnum(value?: string): DataSourceStatus | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toUpperCase();
+  return Object.values(DataSourceStatus).includes(normalized as DataSourceStatus) ? (normalized as DataSourceStatus) : undefined;
+}
+
+function toImportStatusEnum(value?: string): ImportStatus | undefined {
+  if (!value) return undefined;
+  const normalized = value.trim().toUpperCase();
+  return Object.values(ImportStatus).includes(normalized as ImportStatus) ? (normalized as ImportStatus) : undefined;
+}
+
+function dateWhere(from?: string, to?: string): Prisma.DateTimeFilter | undefined {
+  const where: Prisma.DateTimeFilter = {};
+  if (from) where.gte = new Date(from);
+  if (to) where.lte = new Date(`${to}T23:59:59.999Z`);
+  return where.gte || where.lte ? where : undefined;
+}
+
+export async function listAdminDataSources(filters: ListDataSourcesInput): Promise<{ items: AdminDataSourceItem[]; pagination: AdminPagination }> {
+  const where: Prisma.DataSourceWhereInput = {
+    type: toSourceTypeEnum(filters.type),
+    status: toDataSourceStatusEnum(filters.status),
+    OR: filters.search
+      ? [{ id: { contains: filters.search, mode: "insensitive" } }, { name: { contains: filters.search, mode: "insensitive" } }, { type: { equals: toSourceTypeEnum(filters.search) } }]
+      : undefined,
+  };
+
+  const [total, sources] = await Promise.all([
+    db.dataSource.count({ where }),
+    db.dataSource.findMany({
+      where,
+      orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+      skip: filters.offset,
+      take: filters.limit,
+      include: {
+        importBatches: {
+          orderBy: { startedAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            rowsImported: true,
+            rowsFailed: true,
+          },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    items: sources.map(mapDataSource),
+    pagination: toPagination(filters.limit, filters.offset, total),
+  };
+}
+
+export async function getAdminDataSourcesSummary(filters: Omit<ListDataSourcesInput, "limit" | "offset">): Promise<AdminDataSourcesSummary> {
+  const where: Prisma.DataSourceWhereInput = {
+    type: toSourceTypeEnum(filters.type),
+    status: toDataSourceStatusEnum(filters.status),
+    OR: filters.search
+      ? [{ id: { contains: filters.search, mode: "insensitive" } }, { name: { contains: filters.search, mode: "insensitive" } }, { type: { equals: toSourceTypeEnum(filters.search) } }]
+      : undefined,
+  };
+
+  const [total, active, failed, neverSynced] = await Promise.all([
+    db.dataSource.count({ where }),
+    db.dataSource.count({ where: { ...where, status: DataSourceStatus.ACTIVE } }),
+    db.dataSource.count({ where: { ...where, status: DataSourceStatus.ERROR } }),
+    db.dataSource.count({ where: { ...where, lastSyncAt: null } }),
+  ]);
+
+  return { total, active, failed, neverSynced };
+}
+
+export async function listAdminImportBatches(filters: ListBatchesInput): Promise<{ items: AdminImportBatchItem[]; pagination: AdminPagination }> {
+  const where: Prisma.ImportBatchWhereInput = {
+    sourceId: filters.sourceId ?? undefined,
+    sourceType: toSourceTypeEnum(filters.sourceType),
+    status: toImportStatusEnum(filters.status),
+    startedAt: dateWhere(filters.from, filters.to),
+  };
+
+  const [total, batches] = await Promise.all([
+    db.importBatch.count({ where }),
+    db.importBatch.findMany({
+      where,
+      orderBy: { startedAt: "desc" },
+      skip: filters.offset,
+      take: filters.limit,
+      include: {
+        importedBy: {
+          select: { email: true },
+        },
+        rowErrors: {
+          select: { id: true },
+        },
+      },
+    }),
+  ]);
+
+  return {
+    items: batches.map(mapImportBatch),
+    pagination: toPagination(filters.limit, filters.offset, total),
+  };
+}
+
+export async function getAdminImportBatchesSummary(filters: Omit<ListBatchesInput, "limit" | "offset">): Promise<AdminImportBatchesSummary> {
+  const where: Prisma.ImportBatchWhereInput = {
+    sourceId: filters.sourceId ?? undefined,
+    sourceType: toSourceTypeEnum(filters.sourceType),
+    status: toImportStatusEnum(filters.status),
+    startedAt: dateWhere(filters.from, filters.to),
+  };
+
+  const [total, completed, failed, running, draft] = await Promise.all([
+    db.importBatch.count({ where }),
+    db.importBatch.count({
+      where: {
+        ...where,
+        status: { in: [ImportStatus.COMPLETED, ImportStatus.COMPLETED_WITH_ERRORS] },
+      },
+    }),
+    db.importBatch.count({ where: { ...where, status: ImportStatus.FAILED } }),
+    db.importBatch.count({ where: { ...where, status: ImportStatus.RUNNING } }),
+    db.importBatch.count({ where: { ...where, status: ImportStatus.PENDING } }),
+  ]);
+
+  return { total, completed, failed, running, draft };
+}
+
+export async function listRecentImportBatchesForSource(input: ListSourceBatchesInput): Promise<{ items: AdminImportBatchItem[]; pagination: AdminPagination }> {
   return listAdminImportBatches({
-    sourceId,
-    limit,
+    sourceId: input.sourceId,
+    status: input.status,
+    from: input.from,
+    to: input.to,
+    limit: input.limit,
+    offset: input.offset,
   });
 }
 
-export async function listRecentImportErrorsForSource(
-  sourceId: string,
-  limit = 50,
-): Promise<
-  Array<{
-    id: string;
-    importBatchId: string;
-    rowNumber: number;
-    field: string | null;
-    message: string;
-    severity: string;
-    createdAt: string;
-  }>
-> {
+export async function listRecentImportErrorsForSource(input: ListSourceErrorsInput): Promise<{
+  items: AdminDataSourceDetails["recentErrors"];
+  pagination: AdminPagination;
+}> {
   try {
-    const errors = await db.importRowError.findMany({
-      where: {
-        importBatch: {
-          sourceId,
-        },
+    const where: Prisma.ImportRowErrorWhereInput = {
+      importBatch: {
+        sourceId: input.sourceId,
       },
-      orderBy: { createdAt: "desc" },
-      take: Math.min(Math.max(limit, 1), 200),
-    });
+    };
+    const [total, errors] = await Promise.all([
+      db.importRowError.count({ where }),
+      db.importRowError.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: input.offset,
+        take: input.limit,
+      }),
+    ]);
 
-    return errors.map((error) => ({
-      id: error.id,
-      importBatchId: error.importBatchId,
-      rowNumber: error.rowNumber,
-      field: error.field ?? null,
-      message: error.message,
-      severity: error.code.toLowerCase(),
-      createdAt: error.createdAt.toISOString(),
-    }));
+    return {
+      items: errors.map((error) => ({
+        id: error.id,
+        importBatchId: error.importBatchId,
+        rowNumber: error.rowNumber,
+        field: error.field ?? null,
+        message: error.message,
+        severity: error.code.toLowerCase(),
+        createdAt: error.createdAt.toISOString(),
+      })),
+      pagination: toPagination(input.limit, input.offset, total),
+    };
   } catch {
-    return [];
+    return {
+      items: [],
+      pagination: toPagination(input.limit, input.offset, 0),
+    };
   }
 }
 
-export async function getAdminDataSourceSummary(sourceId: string): Promise<AdminDataSourceDetails["summary"]> {
-  const batches = await db.importBatch.findMany({
-    where: { sourceId },
-    orderBy: { startedAt: "desc" },
-    select: {
-      status: true,
-      rowsImported: true,
-      rowsFailed: true,
-      startedAt: true,
-    },
-  });
+export async function getAdminDataSourceSummary(sourceId: string, filters: { batchStatus?: string; batchFrom?: string; batchTo?: string }): Promise<AdminDataSourceDetails["summary"]> {
+  const where: Prisma.ImportBatchWhereInput = {
+    sourceId,
+    status: toImportStatusEnum(filters.batchStatus),
+    startedAt: dateWhere(filters.batchFrom, filters.batchTo),
+  };
+  const [counts, totals, lastImport] = await Promise.all([
+    db.importBatch.groupBy({
+      by: ["status"],
+      where,
+      _count: { _all: true },
+    }),
+    db.importBatch.aggregate({
+      where,
+      _sum: {
+        rowsImported: true,
+        rowsFailed: true,
+      },
+      _count: {
+        _all: true,
+      },
+    }),
+    db.importBatch.findFirst({
+      where,
+      orderBy: { startedAt: "desc" },
+      select: { startedAt: true },
+    }),
+  ]);
+
+  const completedCount = counts
+    .filter((item) => item.status === ImportStatus.COMPLETED || item.status === ImportStatus.COMPLETED_WITH_ERRORS)
+    .reduce((acc, item) => acc + item._count._all, 0);
 
   return {
-    batchesTotal: batches.length,
-    completed: batches.filter((batch) => batch.status === ImportStatus.COMPLETED || batch.status === ImportStatus.COMPLETED_WITH_ERRORS).length,
-    failed: batches.filter((batch) => batch.status === ImportStatus.FAILED).length,
-    running: batches.filter((batch) => batch.status === ImportStatus.RUNNING).length,
-    rowsImported: batches.reduce((acc, item) => acc + item.rowsImported, 0),
-    rowsFailed: batches.reduce((acc, item) => acc + item.rowsFailed, 0),
-    lastImportAt: batches[0]?.startedAt.toISOString() ?? null,
+    batchesTotal: totals._count._all,
+    completed: completedCount,
+    failed: counts.find((item) => item.status === ImportStatus.FAILED)?._count._all ?? 0,
+    running: counts.find((item) => item.status === ImportStatus.RUNNING)?._count._all ?? 0,
+    rowsImported: totals._sum.rowsImported ?? 0,
+    rowsFailed: totals._sum.rowsFailed ?? 0,
+    lastImportAt: lastImport?.startedAt.toISOString() ?? null,
   };
 }
 
-export async function getAdminDataSourceDetails(id: string): Promise<AdminDataSourceDetails | null> {
+export async function getAdminDataSourceDetails(id: string, filters: Omit<AdminDataSourceDetailsFilters, "warnings">): Promise<AdminDataSourceDetails | null> {
   const source = await db.dataSource.findUnique({
     where: { id },
   });
-
   if (!source) return null;
 
   const [summary, recentBatches, recentErrors] = await Promise.all([
-    getAdminDataSourceSummary(id),
-    listRecentImportBatchesForSource(id, 20),
-    listRecentImportErrorsForSource(id, 50),
+    getAdminDataSourceSummary(id, {
+      batchStatus: filters.batchStatus,
+      batchFrom: filters.batchFrom,
+      batchTo: filters.batchTo,
+    }),
+    listRecentImportBatchesForSource({
+      sourceId: id,
+      status: filters.batchStatus,
+      from: filters.batchFrom,
+      to: filters.batchTo,
+      limit: filters.batchLimit,
+      offset: filters.batchOffset,
+    }),
+    listRecentImportErrorsForSource({
+      sourceId: id,
+      limit: filters.errorLimit,
+      offset: filters.errorOffset,
+    }),
   ]);
 
   return {
@@ -286,7 +607,14 @@ export async function getAdminDataSourceDetails(id: string): Promise<AdminDataSo
       meta: parseMeta(source.configJson),
     },
     summary,
-    recentBatches,
-    recentErrors,
+    recentBatches: recentBatches.items,
+    recentErrors: recentErrors.items,
+    batchesPagination: recentBatches.pagination,
+    errorsPagination: recentErrors.pagination,
+    filters: {
+      batchStatus: filters.batchStatus,
+      batchFrom: filters.batchFrom,
+      batchTo: filters.batchTo,
+    },
   };
 }
