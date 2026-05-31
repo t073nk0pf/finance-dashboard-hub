@@ -3,7 +3,12 @@ type FallbackReason =
   | "analytics_engine_empty_result"
   | "analytics_engine_error"
   | "invalid_query_params"
-  | "legacy_armenia_fallback";
+  | "legacy_armenia_fallback"
+  | "dashboard_template_disabled"
+  | "dashboard_template_empty_result"
+  | "dashboard_template_error"
+  | "dashboard_template_fallback_to_analytics"
+  | "dashboard_template_fallback_to_legacy";
 
 type FallbackContext = {
   route: string;

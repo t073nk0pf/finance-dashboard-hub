@@ -63,11 +63,12 @@ async function fetchPlanFact(baseUrl, cookie, query) {
   return { response, body };
 }
 
-function startDevServer(port, useAnalyticsEngine) {
+function startDevServer(port, useAnalyticsEngine, useDashboardTemplate) {
   const env = {
     ...process.env,
     PORT: String(port),
     USE_ANALYTICS_ENGINE: useAnalyticsEngine ? "true" : "false",
+    USE_DASHBOARD_TEMPLATE: useDashboardTemplate ? "true" : "false",
   };
 
   return spawn("npm", ["run", "dev"], {
@@ -85,8 +86,8 @@ function stopDevServer(child) {
   }
 }
 
-async function runModeCheck({ mode, useAnalyticsEngine, port }) {
-  const child = startDevServer(port, useAnalyticsEngine);
+async function runModeCheck({ mode, useAnalyticsEngine, useDashboardTemplate, port }) {
+  const child = startDevServer(port, useAnalyticsEngine, useDashboardTemplate);
   const baseUrl = `http://localhost:${port}`;
 
   try {
@@ -120,15 +121,24 @@ async function runModeCheck({ mode, useAnalyticsEngine, port }) {
 
 async function run() {
   await runModeCheck({
-    mode: "USE_ANALYTICS_ENGINE=false",
+    mode: "USE_ANALYTICS_ENGINE=false / USE_DASHBOARD_TEMPLATE=false",
     useAnalyticsEngine: false,
+    useDashboardTemplate: false,
     port: 3111,
   });
 
   await runModeCheck({
-    mode: "USE_ANALYTICS_ENGINE=true",
+    mode: "USE_ANALYTICS_ENGINE=true / USE_DASHBOARD_TEMPLATE=false",
     useAnalyticsEngine: true,
+    useDashboardTemplate: false,
     port: 3112,
+  });
+
+  await runModeCheck({
+    mode: "USE_ANALYTICS_ENGINE=true / USE_DASHBOARD_TEMPLATE=true",
+    useAnalyticsEngine: true,
+    useDashboardTemplate: true,
+    port: 3113,
   });
 
   console.log("Plan-fact dual-mode contract checks passed.");
