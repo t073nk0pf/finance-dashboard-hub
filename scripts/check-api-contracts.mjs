@@ -51,6 +51,14 @@ function assertForecastShape(body) {
   }
 }
 
+function assertArmeniaShape(body) {
+  if (!isObject(body)) fail("armenia response must be object");
+  if (!isObject(body.kpis)) fail("armenia kpis must be object");
+  if (!Array.isArray(body.monthlySeries)) fail("armenia monthlySeries must be array");
+  if (!Array.isArray(body.restaurants)) fail("armenia restaurants must be array");
+  if (!Array.isArray(body.profitabilityDrivers)) fail("armenia profitabilityDrivers must be array");
+}
+
 async function run() {
   if (!BASE_URL) {
     console.log("SKIP check-api-contracts: set BASE_URL to run API checks.");
@@ -114,6 +122,14 @@ async function run() {
   const hasLegacyPlaceholderShape = Array.isArray(legacyForecast.body.scenarios) && typeof legacyForecast.body.next === "string";
   if (!hasForecastShape && !hasLegacyPlaceholderShape) fail("legacy forecast response shape mismatch");
   console.log("OK  forecast compatibility");
+
+  const armeniaDashboard = await fetchJson(
+    `${BASE_URL}/api/dashboards/armenia?from=2026-05-01&to=2026-05-31&groupBy=metric`,
+    { headers },
+  );
+  if (armeniaDashboard.response.status !== 200) fail(`/api/dashboards/armenia status ${armeniaDashboard.response.status}`);
+  assertArmeniaShape(armeniaDashboard.body);
+  console.log("OK  dashboards/armenia compatibility");
 
   console.log("API contract checks passed.");
 }

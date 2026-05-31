@@ -2,7 +2,8 @@ type FallbackReason =
   | "analytics_engine_disabled"
   | "analytics_engine_empty_result"
   | "analytics_engine_error"
-  | "invalid_query_params";
+  | "invalid_query_params"
+  | "legacy_armenia_fallback";
 
 type FallbackContext = {
   route: string;
