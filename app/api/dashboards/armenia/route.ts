@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculatePlanFact } from "@/lib/analytics/planFact";
 import { adaptArmeniaDashboardData } from "@/lib/dashboard/adapters/armeniaAdapter";
-import { isAnalyticsEngineEnabled } from "@/lib/dashboard/featureFlags";
+import { adaptTemplateToArmeniaLegacyResponse } from "@/lib/dashboard/adapters/templateToArmeniaLegacyAdapter";
 import { logDashboardFallback } from "@/lib/dashboard/fallbackLogger";
 import { parseDashboardQueryParams } from "@/lib/dashboard/queryFilters";
+import { composeDashboardData } from "@/lib/dashboard/template/composer";
+import { getDashboardTemplate } from "@/lib/dashboard/template/registry";
+import { runDashboardTemplateRoutePipeline } from "@/lib/dashboard/template/routeOrchestrator";
 import { getArmeniaDashboardData } from "@/lib/data/armeniaDataService";
 import { DashboardDataNotFoundError } from "@/lib/data/dashboardDataService";
 import { runForecastForFilters } from "@/lib/forecast/service";
@@ -13,90 +16,80 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   try {
     const fallback = await getArmeniaDashboardData({ source: "static-json" });
-
-    if (!isAnalyticsEngineEnabled()) {
-      logDashboardFallback("analytics_engine_disabled", {
+    const parsed = parseDashboardQueryParams(request.nextUrl.searchParams);
+    if (parsed.warnings.length) {
+      logDashboardFallback("invalid_query_params", {
         route: "/api/dashboards/armenia",
-      });
-      return NextResponse.json(fallback, {
-        headers: {
-          "Cache-Control": "private, max-age=60",
-        },
+        params: { warnings: parsed.warnings },
       });
     }
 
-    try {
-      const parsed = parseDashboardQueryParams(request.nextUrl.searchParams);
-      if (parsed.warnings.length) {
-        logDashboardFallback("invalid_query_params", {
-          route: "/api/dashboards/armenia",
-          params: { warnings: parsed.warnings },
+    const filters = {
+      ...parsed.filters,
+      country: parsed.filters.country === "all" ? "armenia" : parsed.filters.country,
+    };
+
+    const result = await runDashboardTemplateRoutePipeline({
+      routeName: "/api/dashboards/armenia",
+      legacyFallbackData: fallback,
+      runTemplate: async () => {
+        const template = getDashboardTemplate("armenia-overview");
+        if (!template) throw new Error("Template 'armenia-overview' is not registered");
+        return composeDashboardData(template, {
+          ...template.defaultFilters,
+          ...filters,
+          country: "armenia",
         });
-      }
-
-      const country = parsed.filters.country === "all" ? "armenia" : parsed.filters.country;
-      const filters = {
-        ...parsed.filters,
-        country,
-      };
-
-      const [planFact, forecast] = await Promise.all([
-        calculatePlanFact({
-          filters: {
-            ...filters,
-            valueTypes: filters.valueTypes.includes("business_plan")
-              ? filters.valueTypes
-              : [...filters.valueTypes, "business_plan"],
-          },
-          groupBy: parsed.groupBy,
-          metrics: parsed.metrics,
-          articles: parsed.articles,
+      },
+      adaptTemplateResult: (composed) =>
+        adaptTemplateToArmeniaLegacyResponse({
+          composedData: composed,
+          fallbackArmeniaData: fallback,
         }),
-        runForecastForFilters({
-          filters: {
-            ...filters,
-            valueTypes: filters.valueTypes.filter((valueType) => valueType === "fact" || valueType === "plan"),
-          },
-          method: parsed.method,
-          scenarios: parsed.scenarios,
-          metrics: parsed.metrics,
-          asOfDate: parsed.asOfDate,
-        }),
-      ]);
+      runAnalyticsFallback: async () => {
+        const [planFact, forecast] = await Promise.all([
+          calculatePlanFact({
+            filters: {
+              ...filters,
+              valueTypes: filters.valueTypes.includes("business_plan")
+                ? filters.valueTypes
+                : [...filters.valueTypes, "business_plan"],
+            },
+            groupBy: parsed.groupBy,
+            metrics: parsed.metrics,
+            articles: parsed.articles,
+          }),
+          runForecastForFilters({
+            filters: {
+              ...filters,
+              valueTypes: filters.valueTypes.filter((valueType) => valueType === "fact" || valueType === "plan"),
+            },
+            method: parsed.method,
+            scenarios: parsed.scenarios,
+            metrics: parsed.metrics,
+            asOfDate: parsed.asOfDate,
+          }),
+        ]);
+        return { planFact, forecast };
+      },
+      adaptAnalyticsResult: ({ planFact, forecast }) => {
+        if (!planFact.rows.length) return { data: fallback, hasData: false };
+        return {
+          data: adaptArmeniaDashboardData({
+            fallback,
+            planFact,
+            forecast,
+          }),
+          hasData: true,
+        };
+      },
+    });
 
-      const data = adaptArmeniaDashboardData({
-        fallback,
-        planFact,
-        forecast,
-      });
-
-      if (!planFact.rows.length) {
-        logDashboardFallback("legacy_armenia_fallback", {
-          route: "/api/dashboards/armenia",
-          note: "Plan-fact result is empty, legacy data returned",
-        });
-      }
-
-      return NextResponse.json(data, {
-        headers: {
-          "Cache-Control": "private, max-age=60",
-        },
-      });
-    } catch (error) {
-      logDashboardFallback("analytics_engine_error", {
-        route: "/api/dashboards/armenia",
-        note: error instanceof Error ? error.message : "unknown error",
-      });
-      logDashboardFallback("legacy_armenia_fallback", {
-        route: "/api/dashboards/armenia",
-        note: "Engine failed, legacy data returned",
-      });
-      return NextResponse.json(fallback, {
-        headers: {
-          "Cache-Control": "private, max-age=60",
-        },
-      });
-    }
+    return NextResponse.json(result.data, {
+      headers: {
+        "Cache-Control": "private, max-age=60",
+      },
+    });
   } catch (error) {
     if (error instanceof DashboardDataNotFoundError) {
       return NextResponse.json({ error: "Armenia dashboard data not found" }, { status: 404 });

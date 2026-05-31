@@ -13,7 +13,14 @@ type FallbackReason =
   | "forecast_template_empty_result"
   | "forecast_template_error"
   | "forecast_template_fallback_to_analytics"
-  | "forecast_template_fallback_to_legacy";
+  | "forecast_template_fallback_to_legacy"
+  | "template_route_template_disabled"
+  | "template_route_template_empty"
+  | "template_route_template_error"
+  | "template_route_analytics_disabled"
+  | "template_route_analytics_empty"
+  | "template_route_analytics_error"
+  | "template_route_legacy_fallback";
 
 type FallbackContext = {
   route: string;
