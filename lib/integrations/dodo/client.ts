@@ -1,37 +1,51 @@
-import { NotImplementedError } from "@/lib/analytics/model";
-import type {
-  DodoApiConfig,
-  DodoMetricRecord,
-  DodoSyncOptions,
-  DodoSyncResult,
-  DodoUnit,
-} from "@/lib/integrations/dodo/types";
+import type { DodoApiConfig, DodoRawMetric, DodoSyncOptions } from "@/lib/integrations/dodo/types";
+
+export class DodoConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "DodoConfigError";
+  }
+}
+
+export class DodoNotImplementedError extends Error {
+  constructor(message = "Dodo live fetch is not implemented yet") {
+    super(message);
+    this.name = "DodoNotImplementedError";
+  }
+}
 
 export type DodoApiClient = {
-  listUnits(): Promise<DodoUnit[]>;
-  fetchMetricRecords(params: { from: string; to: string; unitIds?: string[] }): Promise<DodoMetricRecord[]>;
-  syncDodoMetrics(options: DodoSyncOptions): Promise<DodoSyncResult>;
+  config: DodoApiConfig;
+  fetchMetrics(options: DodoSyncOptions): Promise<DodoRawMetric[]>;
+  refreshToken(): Promise<{ accessToken: string; refreshToken?: string }>;
 };
 
-export function createDodoClient(config?: DodoApiConfig): DodoApiClient {
-  void config;
+function assertConfig(config: DodoApiConfig): void {
+  if (!config.baseUrl) throw new DodoConfigError("DODO_API_BASE_URL is not configured");
+}
+
+export function createDodoClient(config: DodoApiConfig): DodoApiClient {
+  assertConfig(config);
 
   return {
-    async listUnits() {
-      throw new NotImplementedError("Dodo API client is not implemented yet");
+    config,
+    async fetchMetrics(options) {
+      return fetchDodoMetrics(this, options);
     },
-    async fetchMetricRecords() {
-      throw new NotImplementedError("Dodo API metric fetch is not implemented yet");
-    },
-    async syncDodoMetrics() {
-      throw new NotImplementedError("Dodo API sync is not implemented yet");
+    async refreshToken() {
+      return refreshDodoToken(this);
     },
   };
 }
 
-export async function syncDodoMetrics(
-  client: DodoApiClient,
-  options: DodoSyncOptions,
-): Promise<DodoSyncResult> {
-  return client.syncDodoMetrics(options);
+export async function fetchDodoMetrics(client: DodoApiClient, options: DodoSyncOptions): Promise<DodoRawMetric[]> {
+  if (!client.config.baseUrl) throw new DodoConfigError("DODO_API_BASE_URL is not configured");
+  if (!options.from || !options.to) throw new DodoConfigError("Dodo sync period is not configured");
+  if (!options.metrics.length) throw new DodoConfigError("Dodo sync metrics are not configured");
+  throw new DodoNotImplementedError();
+}
+
+export async function refreshDodoToken(client: DodoApiClient): Promise<{ accessToken: string; refreshToken?: string }> {
+  if (!client.config.baseUrl) throw new DodoConfigError("DODO_API_BASE_URL is not configured");
+  throw new DodoNotImplementedError("Dodo token refresh is not implemented yet");
 }

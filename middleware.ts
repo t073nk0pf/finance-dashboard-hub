@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sessionCookieName, verifySessionToken } from "@/lib/auth/session";
 import { canAccessAdminRoute, canAccessApiRoute, canMutateData } from "@/lib/permissions";
 
-const protectedPrefixes = ["/dashboards", "/admin", "/armenia", "/tv", "/api/dashboards", "/api/analytics", "/api/imports", "/api/forecast"];
+const protectedPrefixes = ["/dashboards", "/admin", "/armenia", "/tv", "/api/dashboards", "/api/analytics", "/api/integrations", "/api/imports", "/api/forecast"];
 const defaultAuthenticatedPath = "/dashboards/plan-fact";
 const forbiddenPath = "/forbidden";
 

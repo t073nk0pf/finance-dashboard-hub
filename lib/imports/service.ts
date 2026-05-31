@@ -53,6 +53,7 @@ function toPrismaSourceType(sourceType: ImportSourceType): SourceType {
     excel: SourceType.EXCEL,
     csv: SourceType.CSV,
     google_sheets: SourceType.GOOGLE_SHEETS,
+    dodo_api: SourceType.DODO_API,
   };
   return map[sourceType];
 }

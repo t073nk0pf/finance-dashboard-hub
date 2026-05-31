@@ -1,10 +1,10 @@
 import type { AnalyticsFact, AnalyticsValueType } from "@/lib/analytics/model";
 
-export type ImportSourceType = "excel" | "csv" | "google_sheets" | "manual";
+export type ImportSourceType = "excel" | "csv" | "google_sheets" | "manual" | "dodo_api";
 export type ImportValidationSeverity = "error" | "warning";
 export type ImportStatus = "pending" | "running" | "completed" | "failed" | "completed_with_errors";
 
-export const importSourceTypes: ImportSourceType[] = ["excel", "csv", "google_sheets", "manual"];
+export const importSourceTypes: ImportSourceType[] = ["excel", "csv", "google_sheets", "manual", "dodo_api"];
 export const analyticsValueTypes: AnalyticsValueType[] = ["fact", "plan", "forecast", "business_plan"];
 
 export type RawImportRow = {
