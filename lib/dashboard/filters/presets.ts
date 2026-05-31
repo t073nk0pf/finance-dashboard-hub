@@ -44,6 +44,21 @@ export function getDashboardFilterPresets(today = new Date()): DashboardFilterPr
       label: "Forecast: текущий месяц",
       filters: { dateRange: current, asOfDate: toDateOnly(today), scenarios: ["pessimistic", "base", "optimistic"], method: "current_pace" },
     },
+    {
+      id: "forecastBaseCurrentMonth",
+      label: "Forecast: base",
+      filters: { dateRange: current, scenarios: ["base"], method: "current_pace", asOfDate: undefined },
+    },
+    {
+      id: "forecastOptimisticCurrentMonth",
+      label: "Forecast: optimistic",
+      filters: { dateRange: current, scenarios: ["optimistic"], method: "current_pace", asOfDate: undefined },
+    },
+    {
+      id: "forecastPessimisticCurrentMonth",
+      label: "Forecast: pessimistic",
+      filters: { dateRange: current, scenarios: ["pessimistic"], method: "current_pace", asOfDate: undefined },
+    },
     { id: "planFactCurrentMonth", label: "Plan-Fact: текущий месяц", filters: { dateRange: current, compareMode: "plan", groupBy: "metric" } },
   ];
 }

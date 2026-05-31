@@ -41,7 +41,7 @@ function toInputDate(value?: string): string {
 }
 
 export function ForecastAdvancedFilterControls() {
-  const { filters, setFilters } = useDashboardFilters();
+  const { filters, setFilters, applyPreset } = useDashboardFilters();
   const [config, setConfig] = useState<DashboardFilterConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -167,6 +167,27 @@ export function ForecastAdvancedFilterControls() {
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="rounded border border-line bg-surface2 px-3 py-1 text-sm font-semibold text-ink"
+          onClick={() => applyPreset("forecastBaseCurrentMonth")}
+        >
+          Base
+        </button>
+        <button
+          type="button"
+          className="rounded border border-line bg-surface2 px-3 py-1 text-sm font-semibold text-ink"
+          onClick={() => applyPreset("forecastOptimisticCurrentMonth")}
+        >
+          Optimistic
+        </button>
+        <button
+          type="button"
+          className="rounded border border-line bg-surface2 px-3 py-1 text-sm font-semibold text-ink"
+          onClick={() => applyPreset("forecastPessimisticCurrentMonth")}
+        >
+          Pessimistic
+        </button>
         <button
           type="button"
           className="rounded border border-line bg-navy px-3 py-1 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"

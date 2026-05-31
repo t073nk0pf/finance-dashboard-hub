@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { buildDashboardUrl } from "../lib/dashboard/filters/urlState.ts";
 import { normalizeForecastAdvancedFilters, validateDashboardFilters, validateForecastAdvancedFilters } from "../lib/dashboard/filters/validation.ts";
+import { getPresetById } from "../lib/dashboard/filters/presets.ts";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@example.com";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin";
@@ -124,6 +125,31 @@ async function checkMode(mode) {
     assert(nonSeed.response.status === 200, `${mode.name}: /api/forecast non-seed period should be 200`);
     assertForecastShape(nonSeed.body);
 
+    const basePresetUrl = buildDashboardUrl("/api/forecast", {
+      country: "armenia",
+      ...(getPresetById("forecastBaseCurrentMonth")?.filters ?? {}),
+    });
+    const optimisticPresetUrl = buildDashboardUrl("/api/forecast", {
+      country: "armenia",
+      ...(getPresetById("forecastOptimisticCurrentMonth")?.filters ?? {}),
+    });
+    const pessimisticPresetUrl = buildDashboardUrl("/api/forecast", {
+      country: "armenia",
+      ...(getPresetById("forecastPessimisticCurrentMonth")?.filters ?? {}),
+    });
+
+    const basePresetResponse = await fetchJson(`${baseUrl}${basePresetUrl}`, { headers });
+    assert(basePresetResponse.response.status === 200, `${mode.name}: base preset forecast should be 200`);
+    assertForecastShape(basePresetResponse.body);
+
+    const optimisticPresetResponse = await fetchJson(`${baseUrl}${optimisticPresetUrl}`, { headers });
+    assert(optimisticPresetResponse.response.status === 200, `${mode.name}: optimistic preset forecast should be 200`);
+    assertForecastShape(optimisticPresetResponse.body);
+
+    const pessimisticPresetResponse = await fetchJson(`${baseUrl}${pessimisticPresetUrl}`, { headers });
+    assert(pessimisticPresetResponse.response.status === 200, `${mode.name}: pessimistic preset forecast should be 200`);
+    assertForecastShape(pessimisticPresetResponse.body);
+
     const planFactPage = await fetch(`${baseUrl}/dashboards/plan-fact`, { headers, redirect: "manual" });
     assert(planFactPage.status === 200, `${mode.name}: /dashboards/plan-fact should remain 200`);
 
@@ -187,6 +213,19 @@ async function run() {
     method: "bad",
   });
   assert(!invalidMethod.isValid, "advanced validation should fail for invalid method");
+
+  const basePreset = getPresetById("forecastBaseCurrentMonth");
+  assert(basePreset, "forecastBaseCurrentMonth preset should exist");
+  assert(basePreset.filters.method === "current_pace", "base preset method should be current_pace");
+  assert((basePreset.filters.scenarios ?? []).join(",") === "base", "base preset scenario should be base");
+
+  const optimisticPreset = getPresetById("forecastOptimisticCurrentMonth");
+  assert(optimisticPreset, "forecastOptimisticCurrentMonth preset should exist");
+  assert((optimisticPreset.filters.scenarios ?? []).join(",") === "optimistic", "optimistic preset scenario should be optimistic");
+
+  const pessimisticPreset = getPresetById("forecastPessimisticCurrentMonth");
+  assert(pessimisticPreset, "forecastPessimisticCurrentMonth preset should exist");
+  assert((pessimisticPreset.filters.scenarios ?? []).join(",") === "pessimistic", "pessimistic preset scenario should be pessimistic");
   console.log("OK  forecast advanced validation/normalization helper");
 
   await checkMode({ name: "filters-disabled", filtersEnabled: false, advancedEnabled: false, port: 3137 });
