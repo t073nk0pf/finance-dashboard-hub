@@ -36,6 +36,7 @@ const targetFields: ImportMappingField["targetField"][] = [
   "date",
   "country",
   "region",
+  "unitId",
   "unitName",
   "unitExternalId",
   "metricKey",
@@ -54,6 +55,7 @@ function toPrismaSourceType(sourceType: ImportSourceType): SourceType {
     csv: SourceType.CSV,
     google_sheets: SourceType.GOOGLE_SHEETS,
     dodo_api: SourceType.DODO_API,
+    seed: SourceType.SEED,
   };
   return map[sourceType];
 }
@@ -177,6 +179,7 @@ export async function saveAnalyticsFacts(facts: ReturnType<typeof mapNormalizedR
       date: new Date(fact.date),
       country: fact.country,
       region: fact.region,
+      unitId: fact.unitId,
       metricKey: fact.metricKey,
       article: fact.article,
       valueType: toPrismaValueType(fact.valueType),

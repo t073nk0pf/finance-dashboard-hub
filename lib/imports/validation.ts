@@ -20,6 +20,9 @@ export function validateImportRows(
   let emptyRows = 0;
 
   const knownMetricKeys = new Set(options.knownMetricKeys ?? []);
+  const knownUnitIds = new Set((options.knownUnitIds ?? []).filter(Boolean));
+  const knownUnitNames = new Set((options.knownUnitNames ?? []).map((item) => item.trim().toLowerCase()).filter(Boolean));
+  const knownUnitExternalIds = new Set((options.knownUnitExternalIds ?? []).map((item) => item.trim().toLowerCase()).filter(Boolean));
 
   for (const row of rows) {
     if (isEmptyRow(row)) {
@@ -40,6 +43,20 @@ export function validateImportRows(
 
     if (!row.country) {
       errors.push({ rowNumber: row.rowNumber, field: "country", message: "Country is required", severity: "error" });
+    }
+
+    const hasUnitReference = Boolean(row.unitId || row.unitName || row.unitExternalId);
+    if (!hasUnitReference) {
+      errors.push({ rowNumber: row.rowNumber, field: "unit", message: "Unit is required", severity: "error" });
+    } else if (!options.allowUnknownUnits) {
+      const unitKnown =
+        (row.unitId ? knownUnitIds.has(row.unitId) : false) ||
+        (row.unitName ? knownUnitNames.has(row.unitName.trim().toLowerCase()) : false) ||
+        (row.unitExternalId ? knownUnitExternalIds.has(row.unitExternalId.trim().toLowerCase()) : false);
+
+      if (!unitKnown) {
+        errors.push({ rowNumber: row.rowNumber, field: "unit", message: "Unknown unit", severity: "error" });
+      }
     }
 
     if (!row.metricKey) {

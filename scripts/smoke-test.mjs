@@ -90,7 +90,7 @@ if (viewerEmail && viewerPassword) {
       { route: "/api/dashboards/plan-fact", status: 200 },
       { route: "/api/dashboards/armenia", status: 200 },
       { route: "/api/imports", status: 403 },
-      { route: "/api/forecast", status: 403 },
+      { route: "/api/forecast", status: 200 },
     ];
 
     for (const expectation of viewerExpectations) {

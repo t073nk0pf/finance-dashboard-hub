@@ -10,6 +10,7 @@ import {
   tvArmeniaTemplate,
 } from "../lib/dashboard/template/registry.ts";
 import { composeDashboardData } from "../lib/dashboard/template/composer.ts";
+import { getPlanFactDashboardData } from "../lib/data/dashboardDataService.ts";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -65,6 +66,19 @@ async function run() {
   assert(typeof composed.templateId === "string", "composer must return templateId");
   assert(typeof composed.generatedAt === "string", "composer must return generatedAt");
   assert(composed.sections && typeof composed.sections === "object", "composer must return sections object");
+
+  let fallbackLoads = 0;
+  let fallbackPromise = null;
+  await composeDashboardData(planFactTemplate, planFactTemplate.defaultFilters, {
+    getPlanFactFallback: () => {
+      if (!fallbackPromise) {
+        fallbackLoads += 1;
+        fallbackPromise = getPlanFactDashboardData({ source: "static-json" });
+      }
+      return fallbackPromise;
+    },
+  });
+  assert(fallbackLoads === 1, "composer should reuse plan-fact fallback within one composition");
 
   console.log("Dashboard template checks passed.");
 }

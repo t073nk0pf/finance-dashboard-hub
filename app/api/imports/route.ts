@@ -15,7 +15,13 @@ export async function GET(request: NextRequest) {
     await requireRole(request, ["ADMIN"]);
     const sourceType = request.nextUrl.searchParams.get("sourceType") ?? undefined;
     const imports = await listImportBatches({
-      sourceType: sourceType === "excel" || sourceType === "csv" || sourceType === "google_sheets" || sourceType === "manual"
+      sourceType:
+        sourceType === "excel" ||
+        sourceType === "csv" ||
+        sourceType === "google_sheets" ||
+        sourceType === "manual" ||
+        sourceType === "dodo_api" ||
+        sourceType === "seed"
         ? sourceType
         : undefined,
     });

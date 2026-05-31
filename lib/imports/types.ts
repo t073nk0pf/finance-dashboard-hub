@@ -1,10 +1,10 @@
 import type { AnalyticsFact, AnalyticsValueType } from "@/lib/analytics/model";
 
-export type ImportSourceType = "excel" | "csv" | "google_sheets" | "manual" | "dodo_api";
+export type ImportSourceType = "excel" | "csv" | "google_sheets" | "manual" | "dodo_api" | "seed";
 export type ImportValidationSeverity = "error" | "warning";
 export type ImportStatus = "pending" | "running" | "completed" | "failed" | "completed_with_errors";
 
-export const importSourceTypes: ImportSourceType[] = ["excel", "csv", "google_sheets", "manual", "dodo_api"];
+export const importSourceTypes: ImportSourceType[] = ["excel", "csv", "google_sheets", "manual", "dodo_api", "seed"];
 export const analyticsValueTypes: AnalyticsValueType[] = ["fact", "plan", "forecast", "business_plan"];
 
 export type RawImportRow = {
@@ -30,6 +30,7 @@ export type ImportTargetField =
   | "date"
   | "country"
   | "region"
+  | "unitId"
   | "unitName"
   | "unitExternalId"
   | "metricKey"
@@ -50,6 +51,7 @@ export type NormalizedImportRow = {
   date: string;
   country: string;
   region?: string | null;
+  unitId?: string | null;
   unitName?: string | null;
   unitExternalId?: string | null;
   metricKey: string;
@@ -82,6 +84,9 @@ export type ImportValidationOptions = {
   allowUnknownUnits?: boolean;
   allowUnknownMetrics?: boolean;
   knownMetricKeys?: string[];
+  knownUnitIds?: string[];
+  knownUnitNames?: string[];
+  knownUnitExternalIds?: string[];
 };
 
 export type ImportValidationResult = {
@@ -109,6 +114,80 @@ export type ImportPreviewResult = {
   detectedSourceType: ImportSourceType;
   warnings: ImportValidationError[];
   suggestedMapping?: ImportMappingProfile;
+};
+
+export type ImportPreviewMapping = Partial<Record<
+  | "date"
+  | "country"
+  | "region"
+  | "unitId"
+  | "unitName"
+  | "externalUnitId"
+  | "metricKey"
+  | "article"
+  | "valueType"
+  | "value"
+  | "currency",
+  string
+>>;
+
+export type ImportPreviewOptionsInput = {
+  strictMetrics?: boolean;
+  strictUnits?: boolean;
+};
+
+export type ImportPreviewRowsInput = {
+  sourceType: string;
+  rows: Array<Record<string, unknown>>;
+  mapping?: ImportPreviewMapping;
+  options?: ImportPreviewOptionsInput;
+};
+
+export type ImportPreviewIssue = {
+  rowIndex: number;
+  field?: string;
+  message: string;
+  severity: ImportValidationSeverity;
+};
+
+export type ImportPreviewRowStatus = "valid" | "warning" | "invalid";
+
+export type ImportPreviewRowNormalized = {
+  date: string | null;
+  unitId: string | null;
+  unitName: string | null;
+  externalUnitId: string | null;
+  metricKey: string | null;
+  value: number | null;
+  valueType: string | null;
+  sourceType: string;
+};
+
+export type ImportPreviewRowResult = {
+  rowIndex: number;
+  status: ImportPreviewRowStatus;
+  normalized: ImportPreviewRowNormalized;
+  raw: Record<string, unknown>;
+  errors: ImportPreviewIssue[];
+};
+
+export type ImportPreviewSummary = {
+  totalRows: number;
+  validRows: number;
+  warningRows: number;
+  invalidRows: number;
+  errorsCount: number;
+};
+
+export type ImportPreviewRowsResult = {
+  rowsPreview: ImportPreviewRowResult[];
+  errors: ImportPreviewIssue[];
+  summary: ImportPreviewSummary;
+  meta: {
+    generatedAt: string;
+    source: "import_preview";
+    persisted: false;
+  };
 };
 
 export type ConfirmImportRequest = {

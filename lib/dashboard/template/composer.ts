@@ -8,6 +8,7 @@ import type { DashboardSectionData, ExecutiveSummarySectionData } from "@/lib/da
 import { getPlanFactDashboardData } from "@/lib/data/dashboardDataService";
 import { runForecastForFilters } from "@/lib/forecast/service";
 import type { ForecastInput } from "@/lib/forecast/types";
+import type { DashboardData } from "@/types/dashboard";
 
 export type ComposedDashboardData = {
   templateId: string;
@@ -17,6 +18,21 @@ export type ComposedDashboardData = {
   sections: Record<string, DashboardSectionData>;
   generatedAt: string;
 };
+
+export type DashboardCompositionContext = {
+  getPlanFactFallback: () => Promise<DashboardData>;
+};
+
+export function createDashboardCompositionContext(): DashboardCompositionContext {
+  let planFactFallbackPromise: Promise<DashboardData> | null = null;
+
+  return {
+    getPlanFactFallback: () => {
+      planFactFallbackPromise ??= getPlanFactDashboardData({ source: "static-json" });
+      return planFactFallbackPromise;
+    },
+  };
+}
 
 export async function composeExecutiveSummary(filters: DashboardFilters): Promise<ExecutiveSummarySectionData> {
   const result = await calculatePlanFact({
@@ -38,8 +54,11 @@ export async function composeExecutiveSummary(filters: DashboardFilters): Promis
   };
 }
 
-export async function composePlanFactSection(filters: DashboardFilters): Promise<DashboardSectionData> {
-  const fallback = await getPlanFactDashboardData({ source: "static-json" });
+export async function composePlanFactSection(
+  filters: DashboardFilters,
+  context: DashboardCompositionContext = createDashboardCompositionContext(),
+): Promise<DashboardSectionData> {
+  const fallback = await context.getPlanFactFallback();
   const input: PlanFactInput = {
     filters: {
       ...filters,
@@ -72,33 +91,40 @@ export async function composeForecastSection(filters: DashboardFilters): Promise
   return adaptForecastToDashboardResponse(result);
 }
 
-export async function composeUnitPerformanceSection(filters: DashboardFilters): Promise<DashboardSectionData> {
-  const fallback = await getPlanFactDashboardData({ source: "static-json" });
+export async function composeUnitPerformanceSection(
+  filters: DashboardFilters,
+  context: DashboardCompositionContext = createDashboardCompositionContext(),
+): Promise<DashboardSectionData> {
+  const fallback = await context.getPlanFactFallback();
   void filters;
   return {
     entities: fallback.entities,
   };
 }
 
-export async function composeSectionData(section: DashboardSectionConfig, filters: DashboardFilters): Promise<DashboardSectionData> {
+export async function composeSectionData(
+  section: DashboardSectionConfig,
+  filters: DashboardFilters,
+  context: DashboardCompositionContext = createDashboardCompositionContext(),
+): Promise<DashboardSectionData> {
   switch (section.key) {
     case "executive_summary":
       return composeExecutiveSummary(filters);
     case "plan_fact":
-      return composePlanFactSection(filters);
+      return composePlanFactSection(filters, context);
     case "forecast":
       return composeForecastSection(filters);
     case "unit_performance":
-      return composeUnitPerformanceSection(filters);
+      return composeUnitPerformanceSection(filters, context);
     case "article_performance": {
-      const fallback = await getPlanFactDashboardData({ source: "static-json" });
+      const fallback = await context.getPlanFactFallback();
       return {
         better: fallback.expenseVariance.better,
         worse: fallback.expenseVariance.worse,
       };
     }
     case "current_results": {
-      const fallback = await getPlanFactDashboardData({ source: "static-json" });
+      const fallback = await context.getPlanFactFallback();
       return {
         metrics: Object.values(fallback.metrics),
         period: {
@@ -108,7 +134,7 @@ export async function composeSectionData(section: DashboardSectionConfig, filter
       };
     }
     case "table_layer": {
-      const fallback = await getPlanFactDashboardData({ source: "static-json" });
+      const fallback = await context.getPlanFactFallback();
       return {
         rows: fallback.entities as unknown as Array<Record<string, unknown>>,
       };
@@ -125,6 +151,7 @@ export async function composeSectionData(section: DashboardSectionConfig, filter
 export async function composeDashboardData(
   config: DashboardTemplateConfig,
   filters: DashboardFilters = config.defaultFilters,
+  context: DashboardCompositionContext = createDashboardCompositionContext(),
 ): Promise<ComposedDashboardData> {
   const sections = config.sections
     .filter((section) => section.enabled)
@@ -132,7 +159,7 @@ export async function composeDashboardData(
 
   const data: Record<string, DashboardSectionData> = {};
   for (const section of sections) {
-    data[section.key] = await composeSectionData(section, filters);
+    data[section.key] = await composeSectionData(section, filters, context);
   }
 
   return {
