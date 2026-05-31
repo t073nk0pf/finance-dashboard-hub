@@ -43,6 +43,10 @@ export function canAccessApiRoute(role: string | null | undefined, pathname: str
     return method === "GET" && canViewDashboard(role);
   }
 
+  if (pathname.startsWith("/api/dashboard-template")) {
+    return method === "GET" && canViewDashboard(role);
+  }
+
   if (pathname.startsWith("/api/analytics")) return method === "GET" && canViewDashboard(role);
   if (pathname.startsWith("/api/integrations")) return normalizeRole(role) === "ADMIN";
   if (pathname.startsWith("/api/imports")) return canManageImports(role);
