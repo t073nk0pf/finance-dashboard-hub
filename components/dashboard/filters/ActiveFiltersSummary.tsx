@@ -46,7 +46,7 @@ export function ActiveFiltersSummary() {
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{titleCase(filters.country)}</span>
           {filters.region !== "all" ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{titleCase(filters.region)}</span> : null}
           {filters.unitId ? <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.unitId}</span> : null}
-          <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.dateRange.from} -> {filters.dateRange.to}</span>
+          <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.dateRange.from}{" -> "}{filters.dateRange.to}</span>
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.aggregationMode}</span>
           <span className="rounded border border-line bg-surface2 px-2 py-0.5 text-xs text-ink">{filters.compareMode}</span>
         </div>

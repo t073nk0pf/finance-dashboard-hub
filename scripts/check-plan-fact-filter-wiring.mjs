@@ -94,6 +94,11 @@ async function checkMode(mode) {
 
     const page = await fetch(`${baseUrl}/dashboards/plan-fact`, { headers, redirect: "manual" });
     assert(page.status === 200, `${mode.name}: /dashboards/plan-fact should be 200`);
+    const pageWithQuery = await fetch(
+      `${baseUrl}/dashboards/plan-fact?country=armenia&from=2026-05-01&to=2026-05-31&aggregationMode=period&compareMode=plan`,
+      { headers, redirect: "manual" },
+    );
+    assert(pageWithQuery.status === 200, `${mode.name}: /dashboards/plan-fact with query should be 200`);
 
     const withQuery = await fetchJson(
       `${baseUrl}/api/dashboards/plan-fact?country=armenia&from=2026-05-01&to=2026-05-31&aggregationMode=period&compareMode=plan`,
@@ -109,7 +114,7 @@ async function checkMode(mode) {
     assert(badQuery.response.status === 200, `${mode.name}: bad query should still be 200`);
     assertPlanFactShape(badQuery.body);
 
-    console.log(`OK  ${mode.name} plan-fact page and API query wiring`);
+    console.log(`OK  ${mode.name} plan-fact page/query and API query wiring`);
   } finally {
     stopDevServer(child);
     await delay(800);
