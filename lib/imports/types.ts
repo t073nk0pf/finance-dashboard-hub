@@ -190,6 +190,45 @@ export type ImportPreviewRowsResult = {
   };
 };
 
+export type PreparedImportRowsResult = {
+  normalizedRows: NormalizedImportRow[];
+  rowsPreview: ImportPreviewRowResult[];
+  errors: ImportPreviewIssue[];
+  summary: ImportPreviewSummary;
+  sourceType: ImportSourceType;
+};
+
+export type ImportConfirmRowsInput = ImportPreviewRowsInput & {
+  idempotencyKey?: string;
+};
+
+export type ImportConfirmBatch = {
+  id: string;
+  sourceType: ImportSourceType;
+  status: ImportStatus;
+  rowsTotal: number;
+  rowsImported: number;
+  rowsFailed: number;
+  startedAt: string;
+  finishedAt: string | null;
+};
+
+export type ImportConfirmMeta = {
+  generatedAt: string;
+  source: "import_confirm";
+  persisted: boolean;
+  rejected: boolean;
+  duplicate?: boolean;
+};
+
+export type ImportConfirmRowsResult = {
+  importBatch: ImportConfirmBatch | null;
+  savedFacts: AnalyticsFact[];
+  errors: ImportPreviewIssue[];
+  summary: ImportPreviewSummary;
+  meta: ImportConfirmMeta;
+};
+
 export type ConfirmImportRequest = {
   sourceType: ImportSourceType;
   sourceId?: string;

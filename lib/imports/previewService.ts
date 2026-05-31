@@ -3,12 +3,14 @@ import { db } from "@/lib/db";
 import {
   analyticsValueTypes,
   importSourceTypes,
+  type ImportPreviewSummary,
   type ImportPreviewIssue,
   type ImportPreviewMapping,
   type ImportPreviewRowNormalized,
   type ImportPreviewRowResult,
   type ImportPreviewRowsInput,
   type ImportPreviewRowsResult,
+  type PreparedImportRowsResult,
   type ImportSourceType,
   type ImportValidationSeverity,
   type NormalizedImportRow,
@@ -130,17 +132,21 @@ function buildRowStatus(issues: ImportPreviewIssue[]): ImportPreviewRowResult["s
   return "valid";
 }
 
+function buildEmptySummary(): ImportPreviewSummary {
+  return {
+    totalRows: 0,
+    validRows: 0,
+    warningRows: 0,
+    invalidRows: 0,
+    errorsCount: 0,
+  };
+}
+
 function buildEmptyResult(): ImportPreviewRowsResult {
   return {
     rowsPreview: [],
     errors: [],
-    summary: {
-      totalRows: 0,
-      validRows: 0,
-      warningRows: 0,
-      invalidRows: 0,
-      errorsCount: 0,
-    },
+    summary: buildEmptySummary(),
     meta: {
       generatedAt: new Date().toISOString(),
       source: "import_preview",
@@ -204,7 +210,7 @@ function toNormalizedPreviewRow(
   };
 }
 
-export async function previewImportRows(input: ImportPreviewRowsInput): Promise<ImportPreviewRowsResult> {
+export async function prepareImportRows(input: ImportPreviewRowsInput): Promise<PreparedImportRowsResult> {
   if (!importSourceTypes.includes(input.sourceType as ImportSourceType)) {
     throw new ImportPreviewInputError("invalid_source_type", "Unsupported source type", 400, {
       sourceType: input.sourceType,
@@ -223,7 +229,15 @@ export async function previewImportRows(input: ImportPreviewRowsInput): Promise<
     });
   }
 
-  if (input.rows.length === 0) return buildEmptyResult();
+  if (input.rows.length === 0) {
+    return {
+      normalizedRows: [],
+      rowsPreview: [],
+      errors: [],
+      summary: buildEmptySummary(),
+      sourceType: input.sourceType as ImportSourceType,
+    };
+  }
 
   const sourceType = input.sourceType as ImportSourceType;
   const [units, metrics] = await Promise.all([
@@ -291,7 +305,7 @@ export async function previewImportRows(input: ImportPreviewRowsInput): Promise<
     };
   });
 
-  const summary = rowsPreview.reduce<ImportPreviewRowsResult["summary"]>(
+  const summary = rowsPreview.reduce<ImportPreviewSummary>(
     (accumulator, row) => {
       accumulator.totalRows += 1;
       if (row.status === "valid") accumulator.validRows += 1;
@@ -300,19 +314,26 @@ export async function previewImportRows(input: ImportPreviewRowsInput): Promise<
       accumulator.errorsCount += row.errors.filter((issue) => issue.severity === "error").length;
       return accumulator;
     },
-    {
-      totalRows: 0,
-      validRows: 0,
-      warningRows: 0,
-      invalidRows: 0,
-      errorsCount: 0,
-    },
+    buildEmptySummary(),
   );
 
   return {
+    normalizedRows,
     rowsPreview,
     errors: allIssues,
     summary,
+    sourceType,
+  };
+}
+
+export async function previewImportRows(input: ImportPreviewRowsInput): Promise<ImportPreviewRowsResult> {
+  if (Array.isArray(input.rows) && input.rows.length === 0) return buildEmptyResult();
+
+  const prepared = await prepareImportRows(input);
+  return {
+    rowsPreview: prepared.rowsPreview,
+    errors: prepared.errors,
+    summary: prepared.summary,
     meta: {
       generatedAt: new Date().toISOString(),
       source: "import_preview",
