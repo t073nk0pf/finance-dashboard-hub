@@ -1,7 +1,136 @@
 import bcrypt from "bcryptjs";
-import { MetricDirection, MetricFormat, MetricKind, PrismaClient, UserRole } from "@prisma/client";
+import { AnalyticsValueType, DataSourceStatus, MetricDirection, MetricFormat, MetricKind, PrismaClient, SourceType, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
+
+type SeedUnit = {
+  id: string;
+  name: string;
+  country: "armenia" | "russia";
+  region: string;
+  externalId: string;
+  statusProfile: "normal" | "attention" | "risk" | "critical";
+};
+
+const analyticsSeedSourceId = "analytics-seed-v1";
+const analyticsSeedSourceName = "Analytics Seed Data v1";
+
+const seedUnits: SeedUnit[] = [
+  { id: "unit-am-yerevan-1", name: "Yerevan-1", country: "armenia", region: "yerevan", externalId: "am-yerevan-1", statusProfile: "normal" },
+  { id: "unit-am-yerevan-2", name: "Yerevan-2", country: "armenia", region: "yerevan", externalId: "am-yerevan-2", statusProfile: "attention" },
+  { id: "unit-am-yerevan-3", name: "Yerevan-3", country: "armenia", region: "yerevan", externalId: "am-yerevan-3", statusProfile: "risk" },
+  { id: "unit-am-gyumri-1", name: "Gyumri-1", country: "armenia", region: "gyumri", externalId: "am-gyumri-1", statusProfile: "critical" },
+  { id: "unit-ru-spb-1", name: "SPB-1", country: "russia", region: "spb", externalId: "ru-spb-1", statusProfile: "normal" },
+  { id: "unit-ru-spb-2", name: "SPB-2", country: "russia", region: "spb", externalId: "ru-spb-2", statusProfile: "risk" },
+  { id: "unit-ru-volkhov-1", name: "Volkhov-1", country: "russia", region: "volkhov", externalId: "ru-volkhov-1", statusProfile: "attention" },
+];
+
+function getMayDates(): Date[] {
+  const days: Date[] = [];
+  for (let day = 1; day <= 31; day += 1) {
+    days.push(new Date(Date.UTC(2026, 4, day, 12, 0, 0)));
+  }
+  return days;
+}
+
+function profileMultiplier(profile: SeedUnit["statusProfile"], metricKey: string, valueType: "plan" | "fact"): number {
+  if (valueType === "plan") return 1;
+
+  if (metricKey === "revenue" || metricKey === "ebitda") {
+    if (profile === "normal") return 1.05;
+    if (profile === "attention") return 0.97;
+    if (profile === "risk") return 0.9;
+    return 0.78;
+  }
+
+  if (profile === "normal") return 0.95;
+  if (profile === "attention") return 1.03;
+  if (profile === "risk") return 1.1;
+  return 1.2;
+}
+
+function round(value: number): number {
+  return Number(value.toFixed(4));
+}
+
+function buildAnalyticsFacts(units: SeedUnit[]): {
+  date: Date;
+  country: string;
+  region: string;
+  unitId: string;
+  metricKey: string;
+  article: string;
+  valueType: AnalyticsValueType;
+  value: number;
+  currency: string;
+  sourceType: SourceType;
+  sourceId: string;
+}[] {
+  const dates = getMayDates();
+  const metrics = [
+    { key: "revenue", article: "revenue", planDaily: 10000, currency: "AMD" },
+    { key: "ebitda", article: "ebitda", planDaily: 1500, currency: "AMD" },
+    { key: "uc", article: "uc", planDaily: 0.32, currency: "ratio" },
+    { key: "dc", article: "dc", planDaily: 0.08, currency: "ratio" },
+    { key: "labor", article: "labor", planDaily: 0.18, currency: "ratio" },
+    { key: "rent", article: "rent", planDaily: 0.09, currency: "ratio" },
+    { key: "marketing", article: "marketing", planDaily: 0.05, currency: "ratio" },
+    { key: "write_offs", article: "write_offs", planDaily: 0.03, currency: "ratio" },
+  ] as const;
+
+  const facts: {
+    date: Date;
+    country: string;
+    region: string;
+    unitId: string;
+    metricKey: string;
+    article: string;
+    valueType: AnalyticsValueType;
+    value: number;
+    currency: string;
+    sourceType: SourceType;
+    sourceId: string;
+  }[] = [];
+
+  for (const unit of units) {
+    for (const metric of metrics) {
+      for (const date of dates) {
+        const plan = round(metric.planDaily);
+        const fact = round(metric.planDaily * profileMultiplier(unit.statusProfile, metric.key, "fact"));
+
+        facts.push({
+          date,
+          country: unit.country,
+          region: unit.region,
+          unitId: unit.id,
+          metricKey: metric.key,
+          article: metric.article,
+          valueType: AnalyticsValueType.PLAN,
+          value: plan,
+          currency: metric.currency,
+          sourceType: SourceType.SEED,
+          sourceId: analyticsSeedSourceId,
+        });
+
+        facts.push({
+          date,
+          country: unit.country,
+          region: unit.region,
+          unitId: unit.id,
+          metricKey: metric.key,
+          article: metric.article,
+          valueType: AnalyticsValueType.FACT,
+          value: fact,
+          currency: metric.currency,
+          sourceType: SourceType.SEED,
+          sourceId: analyticsSeedSourceId,
+        });
+      }
+    }
+  }
+
+  return facts;
+}
 
 async function main() {
   const email = (process.env.ADMIN_EMAIL || "admin@example.com").toLowerCase();
@@ -191,6 +320,62 @@ async function main() {
       create: article,
     });
   }
+
+  for (const unit of seedUnits) {
+    await prisma.unit.upsert({
+      where: { id: unit.id },
+      update: {
+        name: unit.name,
+        country: unit.country,
+        region: unit.region,
+        externalId: unit.externalId,
+        isActive: true,
+      },
+      create: {
+        id: unit.id,
+        name: unit.name,
+        country: unit.country,
+        region: unit.region,
+        externalId: unit.externalId,
+        isActive: true,
+      },
+    });
+  }
+
+  await prisma.dataSource.upsert({
+    where: { id: analyticsSeedSourceId },
+    update: {
+      name: analyticsSeedSourceName,
+      type: SourceType.SEED,
+      status: DataSourceStatus.ACTIVE,
+      configJson: {
+        version: "v1",
+        period: "2026-05",
+      },
+    },
+    create: {
+      id: analyticsSeedSourceId,
+      name: analyticsSeedSourceName,
+      type: SourceType.SEED,
+      status: DataSourceStatus.ACTIVE,
+      configJson: {
+        version: "v1",
+        period: "2026-05",
+      },
+    },
+  });
+
+  await prisma.analyticsFact.deleteMany({
+    where: {
+      sourceType: SourceType.SEED,
+      sourceId: analyticsSeedSourceId,
+    },
+  });
+
+  const analyticsFacts = buildAnalyticsFacts(seedUnits);
+  await prisma.analyticsFact.createMany({
+    data: analyticsFacts,
+  });
 
   await prisma.legalEntity.upsert({
     where: { slug: "zhar-pizza" },

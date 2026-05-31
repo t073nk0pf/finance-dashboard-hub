@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "smoke": "node scripts/smoke-test.mjs",
+    "smoke:analytics-seed": "node scripts/smoke-analytics-seed.mjs",
     "create:user": "node scripts/create-user.mjs",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
