@@ -9,6 +9,7 @@ const protectedPrefixes = [
   "/tv",
   "/api/dashboards",
   "/api/dashboard-template",
+  "/api/dashboard-filters",
   "/api/analytics",
   "/api/integrations",
   "/api/imports",
