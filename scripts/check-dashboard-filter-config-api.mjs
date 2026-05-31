@@ -81,6 +81,16 @@ function assertConfigShape(body) {
   assert(typeof body.meta.generatedAt === "string", "meta.generatedAt must be string");
   assert(body.meta.source === "dashboard_filter_config", "meta.source must be dashboard_filter_config");
   assert(Array.isArray(body.meta.warnings), "meta.warnings must be array");
+  assert(typeof body.meta.dynamicOptions === "boolean", "meta.dynamicOptions must be boolean");
+  assert(Array.isArray(body.config.regions), "config.regions must be array");
+  assert(Array.isArray(body.config.units), "config.units must be array");
+}
+
+function assertOptionsShape(options, label) {
+  for (const option of options) {
+    assert(typeof option.value === "string", `${label} option.value must be string`);
+    assert(typeof option.label === "string", `${label} option.label must be string`);
+  }
 }
 
 async function run() {
@@ -106,7 +116,21 @@ async function run() {
     );
     assert(ok.response.status === 200, `expected 200, got ${ok.response.status}`);
     assertConfigShape(ok.body);
+    assertOptionsShape(ok.body.config.regions, "regions");
+    assertOptionsShape(ok.body.config.units, "units");
     console.log("OK  dashboard-filters/config normal params");
+
+    const countryScoped = await fetchJson(`${baseUrl}/api/dashboard-filters/config?country=armenia`, { headers });
+    assert(countryScoped.response.status === 200, `country scoped expected 200, got ${countryScoped.response.status}`);
+    assertConfigShape(countryScoped.body);
+    assert(countryScoped.body.config.units.length > 0, "country scoped units should exist");
+    console.log("OK  dashboard-filters/config country scoped options");
+
+    const regionScoped = await fetchJson(`${baseUrl}/api/dashboard-filters/config?country=armenia&region=Yerevan`, { headers });
+    assert(regionScoped.response.status === 200, `region scoped expected 200, got ${regionScoped.response.status}`);
+    assertConfigShape(regionScoped.body);
+    assert(regionScoped.body.config.units.length > 0, "region scoped units should exist");
+    console.log("OK  dashboard-filters/config region scoped options");
 
     const bad = await fetchJson(`${baseUrl}/api/dashboard-filters/config?from=bad-date&aggregationMode=bad`, { headers });
     assert(bad.response.status === 200, `bad params expected 200, got ${bad.response.status}`);

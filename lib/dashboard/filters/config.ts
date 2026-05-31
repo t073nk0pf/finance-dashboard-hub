@@ -3,6 +3,7 @@ import type { PlanFactGroupBy } from "@/lib/analytics/types";
 import type { AggregationMode, CompareMode } from "@/lib/analytics/filters";
 import type { DashboardCountry, DashboardFilterConfig, DashboardFilterOption } from "@/lib/dashboard/filters/types";
 import type { ValueType } from "@/lib/analytics/model";
+import { getCountryScopedFilterOptions } from "@/lib/dashboard/filters/optionsRepository";
 
 const COUNTRIES: DashboardFilterOption[] = [
   { value: "all", label: "Все страны" },
@@ -75,4 +76,34 @@ export function getDashboardFilterConfig(scope: { country?: DashboardCountry } =
     scenarioOptions: getScenarioOptions(),
     methodOptions: getMethodOptions(),
   };
+}
+
+export async function getDashboardFilterConfigWithDynamicOptions(filters: {
+  country?: DashboardCountry;
+  region?: string;
+  unitId?: string;
+}): Promise<{ config: DashboardFilterConfig; dynamicOptionsResolved: boolean }> {
+  const staticConfig = getDashboardFilterConfig({ country: filters.country });
+
+  try {
+    const dynamic = await getCountryScopedFilterOptions({
+      country: filters.country ?? "all",
+      region: filters.region ?? "all",
+      unitId: filters.unitId,
+    });
+
+    return {
+      config: {
+        ...staticConfig,
+        regions: [{ value: "all", label: "Все регионы" }, ...dynamic.regions],
+        units: [{ value: "all", label: "Все рестораны" }, ...dynamic.units],
+      },
+      dynamicOptionsResolved: true,
+    };
+  } catch {
+    return {
+      config: staticConfig,
+      dynamicOptionsResolved: false,
+    };
+  }
 }

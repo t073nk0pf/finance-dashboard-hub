@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDashboardFilterConfig } from "@/lib/dashboard/filters/config";
+import { getDashboardFilterConfig, getDashboardFilterConfigWithDynamicOptions } from "@/lib/dashboard/filters/config";
 import { getDashboardFilterPresets } from "@/lib/dashboard/filters/presets";
 import { searchParamsToFilters } from "@/lib/dashboard/filters/urlState";
 import type { DashboardCountry } from "@/lib/dashboard/filters/types";
@@ -42,10 +42,15 @@ export async function GET(request: NextRequest) {
   const query = parseDashboardQueryParams(request.nextUrl.searchParams);
   const parsed = searchParamsToFilters(request.nextUrl.searchParams);
   const scopeCountry = resolveScopeCountry(request.nextUrl.searchParams, parsed.country);
-  const config = getDashboardFilterConfig({ country: scopeCountry });
+  const dynamicConfigResult = await getDashboardFilterConfigWithDynamicOptions({
+    country: scopeCountry,
+    region: parsed.region,
+    unitId: parsed.unitId,
+  }).catch(() => ({ config: getDashboardFilterConfig({ country: scopeCountry }), dynamicOptionsResolved: false }));
   const presets = getDashboardFilterPresets();
 
-  const warnings = query.warnings;
+  const warnings: string[] = [...query.warnings];
+  if (!dynamicConfigResult.dynamicOptionsResolved) warnings.push("dynamic_options_unavailable");
 
   if (warnings.length) {
     logDashboardFallback("invalid_query_params", {
@@ -57,12 +62,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(
     {
       filters: parsed,
-      config,
+      config: dynamicConfigResult.config,
       presets,
       supportedParams,
       meta: {
         generatedAt: new Date().toISOString(),
         source: "dashboard_filter_config",
+        dynamicOptions: dynamicConfigResult.dynamicOptionsResolved,
         warnings: [...new Set(warnings)],
       },
     },
