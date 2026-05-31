@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { buildDashboardUrl } from "../lib/dashboard/filters/urlState.ts";
-import { validateDashboardFilters } from "../lib/dashboard/filters/validation.ts";
+import { normalizeForecastAdvancedFilters, validateDashboardFilters, validateForecastAdvancedFilters } from "../lib/dashboard/filters/validation.ts";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "admin@example.com";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin";
@@ -117,6 +117,13 @@ async function checkMode(mode) {
     assert(advancedQuery.response.status === 200, `${mode.name}: /api/forecast advanced params should be 200`);
     assertForecastShape(advancedQuery.body);
 
+    const nonSeed = await fetchJson(
+      `${baseUrl}/api/forecast?country=armenia&from=2024-01-01&to=2024-01-31&asOfDate=2024-01-17&scenarios=base&method=current_pace`,
+      { headers },
+    );
+    assert(nonSeed.response.status === 200, `${mode.name}: /api/forecast non-seed period should be 200`);
+    assertForecastShape(nonSeed.body);
+
     const planFactPage = await fetch(`${baseUrl}/dashboards/plan-fact`, { headers, redirect: "manual" });
     assert(planFactPage.status === 200, `${mode.name}: /dashboards/plan-fact should remain 200`);
 
@@ -146,6 +153,7 @@ async function run() {
   });
   assert(advancedUrl.includes("asOfDate=2026-05-17"), "buildDashboardUrl should include asOfDate");
   assert(advancedUrl.includes("scenarios=base%2Coptimistic"), "buildDashboardUrl should include scenarios CSV");
+  assert(advancedUrl.includes("method=current_pace"), "buildDashboardUrl should include method");
   console.log("OK  buildDashboardUrl for forecast");
 
   const validRange = validateDashboardFilters({
@@ -153,6 +161,33 @@ async function run() {
   });
   assert(validRange.isValid, "date validation should be valid when from <= to");
   console.log("OK  forecast filter validation helper");
+
+  const invalidAsOf = validateForecastAdvancedFilters({
+    asOfDate: "2026-99-99",
+    scenarios: ["base"],
+    method: "current_pace",
+  });
+  assert(!invalidAsOf.isValid, "advanced validation should fail for invalid asOfDate");
+
+  const duplicateScenarios = normalizeForecastAdvancedFilters({
+    scenarios: ["base", "base", "optimistic"],
+  });
+  assert(
+    (duplicateScenarios.scenarios ?? []).join(",") === "base,optimistic",
+    "scenario normalization should dedupe scenarios",
+  );
+
+  const invalidScenario = validateForecastAdvancedFilters({
+    scenarios: ["base", "bad"],
+    method: "current_pace",
+  });
+  assert(invalidScenario.warnings.length > 0, "advanced validation should warn for invalid scenario");
+
+  const invalidMethod = validateForecastAdvancedFilters({
+    method: "bad",
+  });
+  assert(!invalidMethod.isValid, "advanced validation should fail for invalid method");
+  console.log("OK  forecast advanced validation/normalization helper");
 
   await checkMode({ name: "filters-disabled", filtersEnabled: false, advancedEnabled: false, port: 3137 });
   await checkMode({ name: "filters-enabled-advanced-disabled", filtersEnabled: true, advancedEnabled: false, port: 3138 });

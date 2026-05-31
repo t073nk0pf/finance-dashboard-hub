@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { DashboardFilterConfig, DashboardFilterState } from "@/lib/dashboard/filters/types";
+import { normalizeForecastAdvancedFilters, validateForecastAdvancedFilters } from "@/lib/dashboard/filters/validation";
 
 type FilterConfigResponse = {
   config: DashboardFilterConfig;
@@ -37,13 +38,6 @@ type AdvancedDraft = {
 
 function toInputDate(value?: string): string {
   return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
-}
-
-function isValidDateOnly(value: string): boolean {
-  if (!value) return true;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const time = Date.parse(`${value}T00:00:00.000Z`);
-  return Number.isFinite(time);
 }
 
 export function ForecastAdvancedFilterControls() {
@@ -98,10 +92,26 @@ export function ForecastAdvancedFilterControls() {
     };
   }, []);
 
-  const asOfDateValid = useMemo(() => isValidDateOnly(draft.asOfDate), [draft.asOfDate]);
-  const asOfDateError = asOfDateValid ? null : "Неверный формат as of date.";
-
-  const applyDisabled = !!asOfDateError;
+  const advancedValidation = useMemo(
+    () =>
+      validateForecastAdvancedFilters({
+        asOfDate: draft.asOfDate,
+        scenarios: draft.scenarios,
+        method: draft.method,
+      }),
+    [draft.asOfDate, draft.method, draft.scenarios],
+  );
+  const normalized = useMemo(
+    () =>
+      normalizeForecastAdvancedFilters({
+        asOfDate: draft.asOfDate,
+        scenarios: draft.scenarios,
+        method: draft.method,
+      }),
+    [draft.asOfDate, draft.method, draft.scenarios],
+  );
+  const applyDisabled = !advancedValidation.isValid;
+  const warningMessage = advancedValidation.errors[0]?.message ?? advancedValidation.warnings[0]?.message ?? null;
 
   const scenarioOptions = config.scenarioOptions.length ? config.scenarioOptions : DEFAULT_CONFIG.scenarioOptions;
   const methodOptions = config.methodOptions.length ? config.methodOptions : DEFAULT_CONFIG.methodOptions;
@@ -127,8 +137,9 @@ export function ForecastAdvancedFilterControls() {
             className="mt-1 h-[84px] w-full rounded border border-line bg-surface2 px-2 py-1 text-sm text-ink"
             value={draft.scenarios}
             onChange={(event) => {
-              const next = Array.from(event.target.selectedOptions).map((option) => option.value) as DashboardFilterState["scenarios"];
-              setDraft((prev) => ({ ...prev, scenarios: next.length ? next : ["base"] }));
+              const next = Array.from(event.target.selectedOptions).map((option) => option.value);
+              const normalizedNext = normalizeForecastAdvancedFilters({ scenarios: next }).scenarios ?? [];
+              setDraft((prev) => ({ ...prev, scenarios: normalizedNext.length ? normalizedNext : ["base"] }));
             }}
           >
             {scenarioOptions.map((option) => (
@@ -161,9 +172,9 @@ export function ForecastAdvancedFilterControls() {
           className="rounded border border-line bg-navy px-3 py-1 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
           onClick={() =>
             setFilters({
-              asOfDate: draft.asOfDate || undefined,
-              scenarios: draft.scenarios,
-              method: draft.method,
+              asOfDate: normalized.asOfDate,
+              scenarios: normalized.scenarios ?? [],
+              method: normalized.method ?? "current_pace",
             })
           }
           disabled={applyDisabled}
@@ -185,7 +196,7 @@ export function ForecastAdvancedFilterControls() {
         </button>
         {loading ? <span className="text-xs text-muted">Loading forecast options...</span> : null}
         {error ? <span className="text-xs text-negative">Config error: {error}</span> : null}
-        {!error && asOfDateError ? <span className="text-xs text-warning">{asOfDateError}</span> : null}
+        {!error && warningMessage ? <span className="text-xs text-warning">{warningMessage}</span> : null}
       </div>
     </section>
   );

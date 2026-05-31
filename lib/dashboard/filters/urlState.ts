@@ -1,5 +1,6 @@
 import { parseDashboardQueryParams } from "@/lib/dashboard/queryFilters";
 import type { DashboardFilterState } from "@/lib/dashboard/filters/types";
+import { normalizeForecastAdvancedFilters } from "@/lib/dashboard/filters/validation";
 
 function toDateOnly(value: string | undefined): string | undefined {
   if (!value) return undefined;
@@ -25,6 +26,11 @@ function parseCsv(value: string | null): string[] {
 
 export function searchParamsToFilters(searchParams: URLSearchParams): DashboardFilterState {
   const parsed = parseDashboardQueryParams(searchParams);
+  const normalizedForecastAdvanced = normalizeForecastAdvancedFilters({
+    asOfDate: parsed.asOfDate,
+    scenarios: parsed.scenarios,
+    method: parsed.method,
+  });
 
   return {
     country: (parsed.filters.country as DashboardFilterState["country"]) ?? "all",
@@ -40,9 +46,9 @@ export function searchParamsToFilters(searchParams: URLSearchParams): DashboardF
     metrics: parsed.metrics ?? [],
     articles: parsed.articles ?? [],
     valueTypes: parsed.filters.valueTypes,
-    asOfDate: parsed.asOfDate ?? undefined,
-    scenarios: parsed.scenarios ?? ["pessimistic", "base", "optimistic"],
-    method: parsed.method,
+    asOfDate: normalizedForecastAdvanced.asOfDate,
+    scenarios: normalizedForecastAdvanced.scenarios ?? ["pessimistic", "base", "optimistic"],
+    method: normalizedForecastAdvanced.method ?? "current_pace",
   };
 }
 
@@ -61,7 +67,7 @@ export function filtersToSearchParams(filters: Partial<DashboardFilterState>): U
   if (filters.compareMode && filters.compareMode !== "none") params.set("compareMode", filters.compareMode);
   if (filters.groupBy && filters.groupBy !== "metric") params.set("groupBy", filters.groupBy);
   if (asOfDate) params.set("asOfDate", asOfDate);
-  if (filters.method && filters.method !== "current_pace") params.set("method", filters.method);
+  if (filters.method) params.set("method", filters.method);
 
   const metrics = serializeCsv(filters.metrics);
   const articles = serializeCsv(filters.articles);
@@ -105,18 +111,24 @@ export function getFilterPatchFromSearchParams(searchParams: URLSearchParams): P
   if (searchParams.get("aggregationMode")) patch.aggregationMode = searchParams.get("aggregationMode") as DashboardFilterState["aggregationMode"];
   if (searchParams.get("compareMode")) patch.compareMode = searchParams.get("compareMode") as DashboardFilterState["compareMode"];
   if (searchParams.get("groupBy")) patch.groupBy = searchParams.get("groupBy") as DashboardFilterState["groupBy"];
-  if (searchParams.get("asOfDate")) patch.asOfDate = toDateOnly(searchParams.get("asOfDate") ?? undefined);
-  if (searchParams.get("method")) patch.method = searchParams.get("method") as DashboardFilterState["method"];
+  const normalizedForecastAdvanced = normalizeForecastAdvancedFilters({
+    asOfDate: searchParams.get("asOfDate") ?? undefined,
+    method: searchParams.get("method") ?? undefined,
+    scenarios: parseCsv(searchParams.get("scenarios")),
+  });
+
+  if (normalizedForecastAdvanced.asOfDate) patch.asOfDate = normalizedForecastAdvanced.asOfDate;
+  if (normalizedForecastAdvanced.method) patch.method = normalizedForecastAdvanced.method;
 
   const metrics = parseCsv(searchParams.get("metrics"));
   const articles = parseCsv(searchParams.get("articles"));
   const valueTypes = parseCsv(searchParams.get("valueTypes"));
-  const scenarios = parseCsv(searchParams.get("scenarios"));
+  const scenarios = normalizedForecastAdvanced.scenarios ?? [];
 
   if (metrics.length) patch.metrics = metrics;
   if (articles.length) patch.articles = articles;
   if (valueTypes.length) patch.valueTypes = valueTypes as DashboardFilterState["valueTypes"];
-  if (scenarios.length) patch.scenarios = scenarios as DashboardFilterState["scenarios"];
+  if (scenarios.length) patch.scenarios = scenarios;
 
   return patch;
 }

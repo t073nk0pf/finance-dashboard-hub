@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ActiveFiltersSummary } from "@/components/dashboard/filters/ActiveFiltersSummary";
 import { DashboardFilterBar } from "@/components/dashboard/filters/DashboardFilterBar";
 import { ForecastAdvancedFilterControls } from "@/components/dashboard/filters/ForecastAdvancedFilterControls";
+import { ForecastNoDataSummary } from "@/components/dashboard/filters/ForecastNoDataSummary";
 import { AppShell } from "@/components/layout/AppShell";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { DashboardForecastApiResponse } from "@/lib/dashboard/types";
@@ -76,6 +77,7 @@ function ForecastPageContent() {
           {!hasRows && data.next ? <div className="text-sm text-muted">{data.next}</div> : null}
         </section>
       ) : null}
+      {!loading && !error && data && !hasRows ? <ForecastNoDataSummary /> : null}
     </AppShell>
   );
 }
