@@ -8,7 +8,12 @@ type FallbackReason =
   | "dashboard_template_empty_result"
   | "dashboard_template_error"
   | "dashboard_template_fallback_to_analytics"
-  | "dashboard_template_fallback_to_legacy";
+  | "dashboard_template_fallback_to_legacy"
+  | "forecast_template_disabled"
+  | "forecast_template_empty_result"
+  | "forecast_template_error"
+  | "forecast_template_fallback_to_analytics"
+  | "forecast_template_fallback_to_legacy";
 
 type FallbackContext = {
   route: string;

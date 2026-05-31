@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { calculatePlanFact } from "@/lib/analytics/planFact";
 import { adaptPlanFactToDashboardData } from "@/lib/dashboard/adapters/planFactAdapter";
+import { adaptTemplateToPlanFactLegacyResponse } from "@/lib/dashboard/adapters/templateToPlanFactLegacyAdapter";
 import { isAnalyticsEngineEnabled, isDashboardTemplateEnabled } from "@/lib/dashboard/featureFlags";
 import { logDashboardFallback } from "@/lib/dashboard/fallbackLogger";
 import { parseDashboardQueryParams } from "@/lib/dashboard/queryFilters";
@@ -9,51 +10,6 @@ import { getDashboardTemplate } from "@/lib/dashboard/template/registry";
 import { DashboardDataNotFoundError, getPlanFactDashboardData } from "@/lib/data/dashboardDataService";
 
 export const runtime = "nodejs";
-
-function hasLegacyDashboardShape(value: unknown): boolean {
-  if (!value || typeof value !== "object") return false;
-  const candidate = value as Record<string, unknown>;
-  return (
-    Array.isArray(candidate.months) &&
-    candidate.metrics !== null &&
-    typeof candidate.metrics === "object" &&
-    Array.isArray(candidate.mainArticles) &&
-    candidate.expenseVariance !== null &&
-    typeof candidate.expenseVariance === "object" &&
-    Array.isArray(candidate.entities)
-  );
-}
-
-function extractPlanFactDataFromComposed(composed: Awaited<ReturnType<typeof composeDashboardData>>) {
-  const planFactSection = composed.sections.plan_fact;
-  const articleSection = composed.sections.article_performance;
-  const unitSection = composed.sections.unit_performance;
-
-  if (!planFactSection || typeof planFactSection !== "object") return null;
-  if (!("months" in planFactSection) || !("metrics" in planFactSection) || !("mainArticles" in planFactSection)) return null;
-
-  const months = (planFactSection as { months?: unknown }).months;
-  const metrics = (planFactSection as { metrics?: unknown }).metrics;
-  const mainArticles = (planFactSection as { mainArticles?: unknown }).mainArticles;
-  const better = (articleSection as { better?: unknown } | undefined)?.better ?? [];
-  const worse = (articleSection as { worse?: unknown } | undefined)?.worse ?? [];
-  const entities = (unitSection as { entities?: unknown } | undefined)?.entities ?? [];
-
-  if (!Array.isArray(months) || !metrics || typeof metrics !== "object" || !Array.isArray(mainArticles) || !Array.isArray(entities)) {
-    return null;
-  }
-
-  return {
-    months,
-    metrics,
-    mainArticles,
-    expenseVariance: {
-      better: Array.isArray(better) ? better : [],
-      worse: Array.isArray(worse) ? worse : [],
-    },
-    entities,
-  };
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -84,13 +40,14 @@ export async function GET(request: NextRequest) {
           ...parsed.filters,
         };
         const composed = await composeDashboardData(template, filters);
-        const extracted = extractPlanFactDataFromComposed(composed);
-        if (extracted && hasLegacyDashboardShape(extracted)) {
+        const adapted = adaptTemplateToPlanFactLegacyResponse({
+          composedData: composed,
+          fallbackDashboardData: fallback,
+        });
+
+        if (adapted.hasData) {
           return NextResponse.json(
-            {
-              ...fallback,
-              ...extracted,
-            },
+            adapted.data,
             {
               headers: {
                 "Cache-Control": "private, max-age=60",
