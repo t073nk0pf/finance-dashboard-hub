@@ -19,6 +19,7 @@ backups/
 output/playwright/
 screenshots/
 coverage/
+tsconfig.tsbuildinfo
 
 # OS/editor files
 .DS_Store
