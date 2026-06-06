@@ -17,7 +17,7 @@ export function OfficeTvLayout({ data }: { data: ArmeniaDashboardData }) {
             <div className="text-sm font-black uppercase tracking-[0.16em] text-accent">Office TV</div>
             <h1 className="mt-2 text-4xl font-black tracking-tight text-ink lg:text-6xl">Armenia Finance Pulse</h1>
           </div>
-          <div className="text-right text-sm font-bold text-muted">
+          <div className="rounded-lg border border-line bg-surface px-4 py-3 text-right text-sm font-bold text-muted">
             Не содержит чувствительной детализации
             <br />
             Auto-refresh: placeholder

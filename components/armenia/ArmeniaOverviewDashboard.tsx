@@ -32,20 +32,20 @@ export function ArmeniaOverviewDashboard({ data }: { data: ArmeniaDashboardData 
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
-          <article key={card.label} className="rounded-lg border border-line bg-surface p-4 shadow-soft">
+          <article key={card.label} className="rounded-lg border border-line bg-surface p-5 shadow-card">
             <div className="text-xs font-black uppercase tracking-[0.08em] text-muted">{card.label}</div>
-            <div className={`mt-3 text-2xl font-black ${card.tone}`}>{card.value}</div>
+            <div className={`mt-3 font-mono text-2xl font-black ${card.tone}`}>{card.value}</div>
           </article>
         ))}
       </div>
       <section className="grid gap-5 xl:grid-cols-[1.25fr_0.75fr]">
-        <article className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+        <article className="rounded-lg border border-line bg-surface p-6 shadow-card">
           <h2 className="text-xl font-black text-navy">Executive summary</h2>
           <p className="mt-3 text-sm leading-6 text-muted">
             Армения закрывает {data.period.latestMonth} с EBITDA {formatPercent(kpis.ebitdaMargin)} и чистой прибылью {formatMoney(kpis.netProfit)}.
             Food Cost и UC ниже плановых уровней, но зона внимания остается на ресторанах с EBITDA ниже 15%.
           </p>
-          <div className="mt-5 h-48 rounded-lg border border-line bg-surface2 p-4">
+          <div className="mt-5 h-48 rounded-lg border border-line bg-surface2 p-4 shadow-sm">
             <div className="mb-3 text-sm font-black uppercase tracking-[0.08em] text-muted">EBITDA % по месяцам</div>
             <div className="flex h-32 items-end gap-3">
               {data.monthlySeries.map((point) => (
@@ -64,7 +64,7 @@ export function ArmeniaOverviewDashboard({ data }: { data: ArmeniaDashboardData 
         </article>
         <div className="space-y-5">
           <GrowthReadinessBadge status={status} />
-          <article className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+          <article className="rounded-lg border border-line bg-surface p-5 shadow-card">
             <h2 className="text-xl font-black text-navy">Risk / status</h2>
             <div className="mt-4 space-y-3 text-sm">
               <div className="flex justify-between gap-4"><span className="text-muted">EBITDA threshold</span><b className={ebitdaTone(kpis.ebitdaMargin)}>{formatPercent(kpis.ebitdaMargin)}</b></div>
@@ -75,19 +75,19 @@ export function ArmeniaOverviewDashboard({ data }: { data: ArmeniaDashboardData 
         </div>
       </section>
       <section className="grid gap-5 xl:grid-cols-2">
-        <article className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+        <article className="rounded-lg border border-line bg-surface p-6 shadow-card">
           <h2 className="text-xl font-black text-navy">Готовность к развитию</h2>
           <p className="mt-3 text-sm leading-6 text-muted">{status.description}</p>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-line bg-surface2 p-4">
+            <div className="rounded-lg border border-line bg-surface2 p-4 shadow-sm">
               <div className="text-xs font-black uppercase tracking-[0.08em] text-muted">Порог</div>
               <div className="mt-2 text-2xl font-black text-accent">15%</div>
             </div>
-            <div className="rounded-lg border border-line bg-surface2 p-4">
+            <div className="rounded-lg border border-line bg-surface2 p-4 shadow-sm">
               <div className="text-xs font-black uppercase tracking-[0.08em] text-muted">Серия</div>
               <div className="mt-2 text-2xl font-black text-positive">{status.streak} мес.</div>
             </div>
-            <div className="rounded-lg border border-line bg-surface2 p-4">
+            <div className="rounded-lg border border-line bg-surface2 p-4 shadow-sm">
               <div className="text-xs font-black uppercase tracking-[0.08em] text-muted">Исключено</div>
               <div className="mt-2 text-2xl font-black text-muted">{status.excludedMonthKeys.length}</div>
             </div>
@@ -96,11 +96,11 @@ export function ArmeniaOverviewDashboard({ data }: { data: ArmeniaDashboardData 
             Следующий управленческий шаг - подготовить сценарии открытия без фиксации запуска до подтверждения качества Food Cost, UC и ресторанов зоны внимания.
           </p>
         </article>
-        <article className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+        <article className="rounded-lg border border-line bg-surface p-6 shadow-card">
           <h2 className="text-xl font-black text-navy">Драйверы прибыльности</h2>
           <div className="mt-4 grid gap-3">
             {data.profitabilityDrivers.map((driver) => (
-              <div key={driver.title} className="rounded-lg border border-line bg-surface2 p-4">
+              <div key={driver.title} className="rounded-lg border border-line bg-surface2 p-4 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
                   <b className="text-sm text-navy">{driver.title}</b>
                   <span className={driver.tone === "positive" ? "text-positive" : driver.tone === "warning" ? "text-warning" : "text-negative"}>{driver.value}</span>

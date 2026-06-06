@@ -15,17 +15,17 @@ export function KpiCard({ title, metric, mode = "money" }: KpiCardProps) {
   const fact = mode === "share" ? formatPercent(metric.factShare) : formatMoney(metric.fact);
 
   return (
-    <article className="min-h-36 rounded-lg border border-line bg-surface p-4 shadow-soft">
+    <article className="min-h-40 rounded-lg border border-line bg-surface p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-panel">
       <div className="text-xs font-black uppercase tracking-[0.08em] text-muted">{title}</div>
-      <div className="mt-4 text-3xl font-black text-navy">{value}</div>
-      <div className="mt-3 text-sm leading-5 text-muted">
+      <div className="mt-4 font-mono text-[1.85rem] font-black leading-none text-navy">{value}</div>
+      <div className="mt-4 text-sm font-semibold leading-6 text-muted">
         План: {plan}
         <br />
         Факт: {fact}
       </div>
       <div
-        className={`mt-4 inline-flex rounded-lg px-2.5 py-1 text-sm font-black ${
-          good ? "bg-emerald-50 text-positive" : "bg-red-50 text-negative"
+        className={`mt-4 inline-flex rounded-md border px-2.5 py-1 text-sm font-black ${
+          good ? "border-emerald-100 bg-emerald-50 text-positive" : "border-red-100 bg-red-50 text-negative"
         }`}
       >
         {deviationIcon(metric)} {formatDeviation(metric)}

@@ -9,10 +9,10 @@ export function EntityTable({ entities }: EntityTableProps) {
   const maxRevenue = Math.max(...entities.map((entity) => entity.revenueFact));
 
   return (
-    <section className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+    <section className="rounded-lg border border-line bg-surface p-6 shadow-card">
       <h2 className="text-xl font-black text-navy">Юрлица: выполнение плана</h2>
       <p className="mt-1 text-sm leading-6 text-muted">Сравнение по первым листам-юрлицам. Пиццерии в отдельную разбивку не выводятся.</p>
-      <div className="mt-5 overflow-x-auto border-t-2 border-primary">
+      <div className="mt-5 overflow-x-auto rounded-lg border border-line">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="bg-surface2 text-xs uppercase tracking-[0.06em] text-primary">
@@ -32,10 +32,10 @@ export function EntityTable({ entities }: EntityTableProps) {
               const ebitdaGood = entity.ebitdaDelta >= 0;
               const netGood = entity.netProfitDelta >= 0;
               return (
-                <tr key={entity.sheet} className="border-b border-line last:border-b-0">
+                <tr key={entity.sheet} className="border-b border-line transition hover:bg-blue-50/40 last:border-b-0">
                   <td className="px-3 py-3 text-left font-black">{entity.name}</td>
                   <td className="min-w-56 px-3 py-3 text-right">
-                    <div className="font-black">{formatMoney(entity.revenueFact)}</div>
+                    <div className="font-mono font-black">{formatMoney(entity.revenueFact)}</div>
                     <div className="mt-2 h-2 rounded-full bg-slate-100">
                       <div className="h-2 rounded-full bg-primary" style={{ width: `${Math.max(4, (entity.revenueFact / maxRevenue) * 100)}%` }} />
                     </div>

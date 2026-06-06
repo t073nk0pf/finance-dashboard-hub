@@ -51,26 +51,26 @@ export function LineChartCard({
   const good = isGoodDeviation(metric);
 
   return (
-    <article className="rounded-lg border border-line bg-surface p-5 shadow-soft">
+    <article className="rounded-lg border border-line bg-surface p-6 shadow-card">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-navy">{title}</h2>
           <p className="mt-1 text-sm text-muted">{description}</p>
         </div>
-        <div className={`rounded-lg px-3 py-2 text-sm font-black ${good ? "bg-emerald-50 text-positive" : "bg-red-50 text-negative"}`}>
+        <div className={`rounded-md border px-3 py-2 text-sm font-black ${good ? "border-emerald-100 bg-emerald-50 text-positive" : "border-red-100 bg-red-50 text-negative"}`}>
           {deviationIcon(metric)} {formatDeviation(metric)}
         </div>
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label={title}>
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full rounded-lg bg-white" role="img" aria-label={title}>
         {ticks.map((tick) => (
           <g key={tick}>
-            <line x1={pad.l} y1={y(tick)} x2={width - pad.r} y2={y(tick)} stroke="#E5E7EB" />
+            <line x1={pad.l} y1={y(tick)} x2={width - pad.r} y2={y(tick)} stroke="#E2E8F0" />
             <text x={pad.l - 10} y={y(tick) + 4} textAnchor="end" fontSize="11" fill="#64748B">
               {formatAxis(tick)}
             </text>
           </g>
         ))}
-        <path d={chartPath(planValues, x, y)} fill="none" stroke="#CBD5E1" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
+        <path d={chartPath(planValues, x, y)} fill="none" stroke="#CBD5E1" strokeDasharray="8 8" strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
         <path d={chartPath(factValues, x, y)} fill="none" stroke={color} strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" />
         {factValues.map((value, index) => (
           <g key={`${metric.key}-${metric.series[index].month}`}>

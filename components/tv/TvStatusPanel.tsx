@@ -7,25 +7,25 @@ export function TvStatusPanel({ data, readiness }: { data: ArmeniaDashboardData;
   const ucGood = data.unitEconomics.ucFactShare <= data.unitEconomics.ucPlanShare;
 
   return (
-    <section className="rounded-lg border border-line bg-surface2 p-6">
+    <section className="rounded-lg border border-line bg-surface2 p-8 shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
       <div className="text-sm font-black uppercase tracking-[0.12em] text-muted">Операционный статус</div>
       <div className="mt-6 grid gap-6">
-        <div>
-          <div className={`text-5xl font-black ${readiness.tone === "good" ? "text-positive" : readiness.tone === "warning" ? "text-warning" : "text-negative"}`}>
+        <div className="rounded-lg border border-line bg-surface p-5">
+          <div className={`font-mono text-6xl font-black ${readiness.tone === "good" ? "text-positive" : readiness.tone === "warning" ? "text-warning" : "text-negative"}`}>
             {readiness.status === "accelerated_growth" ? "FAST" : readiness.status === "ready" ? "READY" : readiness.status === "preparation_signal" ? "PREP" : "STOP"}
           </div>
           <div className="mt-2 text-xl text-muted">{readiness.label}</div>
         </div>
-        <div>
-          <div className={`text-5xl font-black ${foodCostGood && ucGood ? "text-positive" : "text-negative"}`}>
+        <div className="rounded-lg border border-line bg-surface p-5">
+          <div className={`font-mono text-6xl font-black ${foodCostGood && ucGood ? "text-positive" : "text-negative"}`}>
             {foodCostGood && ucGood ? "OK" : "WATCH"}
           </div>
           <div className="mt-2 text-xl text-muted">
             FC {formatPercent(data.unitEconomics.foodCostFactShare)} / UC {formatPercent(data.unitEconomics.ucFactShare)}
           </div>
         </div>
-        <div>
-          <div className="text-5xl font-black text-accent">5 мин</div>
+        <div className="rounded-lg border border-line bg-surface p-5">
+          <div className="font-mono text-6xl font-black text-accent">5 мин</div>
           <div className="mt-2 text-xl text-muted">Auto-refresh placeholder</div>
         </div>
       </div>

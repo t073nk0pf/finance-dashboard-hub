@@ -28,14 +28,14 @@ export function TvSlideRotator({ data, readiness }: { data: ArmeniaDashboardData
   const slide = slides[index];
 
   return (
-    <section className="rounded-lg border border-line bg-surface2 p-6">
+    <section className="rounded-lg border border-line bg-surface2 p-8 shadow-[0_24px_90px_rgba(0,0,0,0.28)]">
       <div className="flex items-center justify-between gap-4">
         <div>
           <div className="text-sm font-black uppercase tracking-[0.12em] text-accent">Slide {index + 1} / {slides.length}</div>
-          <h2 className="mt-5 text-4xl font-black text-ink lg:text-6xl">{slide.title}</h2>
-          <p className="mt-5 max-w-4xl text-2xl font-bold leading-snug text-muted lg:text-4xl">{slide.body}</p>
+          <h2 className="mt-6 text-5xl font-black leading-tight text-ink lg:text-7xl">{slide.title}</h2>
+          <p className="mt-6 max-w-5xl text-3xl font-bold leading-snug text-muted lg:text-5xl">{slide.body}</p>
         </div>
-        <div className="hidden h-20 w-20 place-items-center rounded-full border border-line text-2xl font-black text-accent sm:grid">
+        <div className="hidden h-24 w-24 place-items-center rounded-full border border-line bg-surface text-3xl font-black text-accent sm:grid">
           TV
         </div>
       </div>
