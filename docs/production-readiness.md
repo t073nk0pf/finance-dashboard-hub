@@ -7,6 +7,7 @@
 - Production commit before deploy: `0ce3e7a Refresh enterprise visual design`
 - Candidate tag: `v1-product-core-production-visual-merge`
 - Readiness patch tag: `v1-production-readiness-patch`
+- Prisma migration tag: `v1-product-core-prisma-migration`
 
 ## Required Checks Before Merge/Deploy
 
@@ -81,27 +82,62 @@ Enable flags gradually after production smoke and manual checks. Treat `NEXT_PUB
 
 Current status:
 
-- `prisma/migrations` is currently absent.
+- `prisma/migrations` now contains a baseline migration and a product-core schema migration.
+- Production is expected to already have the baseline schema but no historical `_prisma_migrations` rows.
 - `prisma/schema.prisma` expanded significantly in product-core.
-- Do not run database commands during readiness review.
+- Do not run production database commands during readiness review.
 
-Preferred production-safe path:
+Migration files:
 
-1. Create a Prisma migration in a dedicated stage.
-2. Test it on staging or a local clone of production data.
-3. Run this on production only after backup and approval:
+- `20260606230000_baseline_production_schema`
+- `20260606230109_product_core_schema`
+
+Preferred production-safe path for the first migration deploy:
+
+1. Create and verify a PostgreSQL backup.
+2. Confirm production is still on the baseline schema.
+3. Mark the baseline migration as already applied. Do not execute the baseline SQL against an existing production database:
 
 ```bash
-docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npx prisma migrate deploy
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate resolve --applied 20260606230000_baseline_production_schema
 ```
 
-Fallback/current project path:
+4. Check migration status:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate status
+```
+
+5. Apply the product-core migration:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate deploy
+```
+
+6. Re-check status:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate status
+```
+
+For a clean staging database with no existing schema, run only:
+
+```bash
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate deploy
+```
+
+Fallback path:
 
 ```bash
 docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npx prisma db push
 ```
 
-Use `prisma db push` only after PostgreSQL backup and explicit acceptance. It is faster, but weaker than migrations for production drift control and rollback reasoning.
+Use `prisma db push` only after PostgreSQL backup, explicit acceptance, and a clear reason not to use migrations. It is faster, but weaker than migrations for production drift control and rollback reasoning.
 
 ## Seed Policy
 
@@ -143,6 +179,10 @@ Choose one DB command:
 
 ```bash
 # If Prisma migrations exist and were reviewed:
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate resolve --applied 20260606230000_baseline_production_schema
+docker compose --env-file .env.production -f docker-compose.production.yml exec -T app \
+  npx prisma migrate status
 docker compose --env-file .env.production -f docker-compose.production.yml exec -T app npx prisma migrate deploy
 
 # If the team consciously accepts db push for this release:
