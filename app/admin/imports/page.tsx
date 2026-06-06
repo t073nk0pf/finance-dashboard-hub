@@ -1,10 +1,10 @@
 import { AppShell } from "@/components/layout/AppShell";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { ImportPreviewPanel } from "@/components/admin/imports/ImportPreviewPanel";
 
 export default function AdminImportsPage() {
   return (
-    <AppShell title="Admin: imports" description="Контроль загрузок, ImportBatch и статусов обработки." period="system">
-      <EmptyState title="Импорты" description="Здесь будет загрузка XLSX/CSV, журнал ImportBatch и диагностика ошибок парсинга." />
+    <AppShell title="Admin: imports" description="Read-only import preview for sample rows, validation output and future batch diagnostics." period="system">
+      <ImportPreviewPanel />
     </AppShell>
   );
 }
